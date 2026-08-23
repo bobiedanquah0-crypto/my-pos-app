@@ -678,7 +678,7 @@ export default function CheckoutScreen() {
                     flexDirection: 'column', 
                     justifyContent: 'space-between', 
                     boxSizing: 'border-box',
-                    position: 'relative' // Required for absolute positioning of hover actions
+                    position: 'relative'
                   }}
                 >
                   <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1 }}>
@@ -688,7 +688,7 @@ export default function CheckoutScreen() {
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
-                  {/* Fainted Symbol-Only Actions on Hover for Admin */}
+                  {/* Neutral Gray Hover Actions (Transparent backdrop to avoid color clashes) */}
                   {currentUser.role === 'admin' && (
                     <div style={{ 
                       position: 'absolute', 
@@ -696,11 +696,13 @@ export default function CheckoutScreen() {
                       right: '8px', 
                       display: 'flex', 
                       gap: '4px',
-                      opacity: hoveredProductId === p.id ? 1 : 0.25, // Fainted normally, bright on hover
+                      opacity: hoveredProductId === p.id ? 1 : 0.2, 
                       transition: 'opacity 0.2s ease-in-out',
-                      backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                      padding: '2px 4px',
+                      backgroundColor: 'rgba(243, 244, 246, 0.9)', 
+                      backdropFilter: 'blur(4px)',
+                      padding: '3px 6px',
                       borderRadius: '6px',
+                      border: '1px solid rgba(209, 213, 219, 0.5)',
                       boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                     }}>
                       <button 
@@ -712,10 +714,10 @@ export default function CheckoutScreen() {
                         style={{ 
                           background: 'none', 
                           border: 'none', 
-                          fontSize: '14px', 
+                          fontSize: '13px', 
                           cursor: 'pointer', 
-                          padding: '4px', 
-                          color: '#2563eb',
+                          padding: '2px', 
+                          color: '#4b5563', // Neutral gray
                           lineHeight: 1
                         }}
                       >
@@ -730,10 +732,10 @@ export default function CheckoutScreen() {
                         style={{ 
                           background: 'none', 
                           border: 'none', 
-                          fontSize: '14px', 
+                          fontSize: '13px', 
                           cursor: 'pointer', 
-                          padding: '4px', 
-                          color: '#dc2626',
+                          padding: '2px', 
+                          color: '#4b5563', // Neutral gray
                           lineHeight: 1
                         }}
                       >
