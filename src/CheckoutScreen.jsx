@@ -27,6 +27,9 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
+  // State to track which product card is currently being hovered
+  const [hoveredProductId, setHoveredProductId] = useState(null);
+
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -134,7 +137,6 @@ export default function CheckoutScreen() {
     }
   };
 
-  // Remove a specific item entirely from the cart
   const removeFromCart = (productId) => {
     setCart(cart.filter(item => item.id !== productId));
   };
@@ -696,6 +698,8 @@ export default function CheckoutScreen() {
               {filteredProducts.map(p => (
                 <div 
                   key={p.id} 
+                  onMouseEnter={() => setHoveredProductId(p.id)}
+                  onMouseLeave={() => setHoveredProductId(null)}
                   style={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                     padding: '12px', 
@@ -715,39 +719,54 @@ export default function CheckoutScreen() {
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
-                  {currentUser.role === 'admin' && (
+                  {currentUser.role === 'admin' && hoveredProductId === p.id && (
                     <div style={{ 
-                      position: 'absolute', 
-                      top: '8px', 
-                      right: '8px', 
                       display: 'flex', 
-                      gap: '4px',
-                      backgroundColor: 'rgba(243, 244, 246, 0.95)', 
-                      backdropFilter: 'blur(4px)',
-                      padding: '3px 6px',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(209, 213, 219, 0.6)',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                      gap: '8px', 
+                      marginTop: '10px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid rgba(209, 213, 219, 0.6)',
+                      animation: 'fadeIn 0.2s ease-in-out'
                     }}>
                       <button 
-                        title="Edit Product"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenEdit(p);
+                        onClick={() => handleOpenEdit(p)}
+                        style={{ 
+                          flex: 1, 
+                          backgroundColor: '#f3f4f6', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '6px', 
+                          padding: '6px 4px', 
+                          fontSize: '12px', 
+                          fontWeight: 'bold', 
+                          cursor: 'pointer', 
+                          color: '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
                         }}
-                        style={{ background: 'none', border: 'none', fontSize: '13px', cursor: 'pointer', padding: '2px', color: '#4b5563', lineHeight: 1 }}
                       >
-                        ✏️
+                        ✏️ Edit
                       </button>
                       <button 
-                        title="Delete Product"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteProduct(p);
+                        onClick={() => handleDeleteProduct(p)}
+                        style={{ 
+                          flex: 1, 
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                          border: '1px solid rgba(239, 68, 68, 0.3)', 
+                          borderRadius: '6px', 
+                          padding: '6px 4px', 
+                          fontSize: '12px', 
+                          fontWeight: 'bold', 
+                          cursor: 'pointer', 
+                          color: '#dc2626',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
                         }}
-                        style={{ background: 'none', border: 'none', fontSize: '13px', cursor: 'pointer', padding: '2px', color: '#4b5563', lineHeight: 1 }}
                       >
-                        🗑️
+                        🗑️ Delete
                       </button>
                     </div>
                   )}
