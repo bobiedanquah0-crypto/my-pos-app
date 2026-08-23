@@ -27,8 +27,8 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // State to track which product card is currently being hovered
-  const [hoveredProductId, setHoveredProductId] = useState(null);
+  // State to track which product card is currently hovered (Desktop) or active/tapped (Mobile)
+  const [activeProductId, setActiveProductId] = useState(null);
 
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
@@ -698,8 +698,8 @@ export default function CheckoutScreen() {
               {filteredProducts.map(p => (
                 <div 
                   key={p.id} 
-                  onMouseEnter={() => setHoveredProductId(p.id)}
-                  onMouseLeave={() => setHoveredProductId(null)}
+                  onMouseEnter={() => setActiveProductId(p.id)}
+                  onMouseLeave={() => setActiveProductId(null)}
                   style={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                     padding: '12px', 
@@ -712,14 +712,39 @@ export default function CheckoutScreen() {
                     position: 'relative'
                   }}
                 >
-                  <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1 }}>
+                  {/* Mobile Admin toggle button in top-right corner */}
+                  {currentUser.role === 'admin' && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveProductId(activeProductId === p.id ? null : p.id);
+                      }}
+                      title="Toggle Options"
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(0,0,0,0.06)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        color: '#4b5563'
+                      }}
+                    >
+                      ⚙️
+                    </button>
+                  )}
+
+                  <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1, paddingRight: currentUser.role === 'admin' ? '20px' : '0' }}>
                     <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#111827' }}>{p.name}</h3>
                     <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#4b5563' }}>{p.category}</p>
                     <p style={{ margin: '0', fontWeight: 'bold', color: '#059669', fontSize: '14px' }}>GHC {parseFloat(p.price || 0).toFixed(2)}</p>
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
-                  {currentUser.role === 'admin' && hoveredProductId === p.id && (
+                  {currentUser.role === 'admin' && activeProductId === p.id && (
                     <div style={{ 
                       display: 'flex', 
                       gap: '8px', 
