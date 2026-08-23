@@ -27,7 +27,7 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // State to track which product card is currently hovered (Desktop) or active/tapped (Mobile)
+  // State to track active product card for mobile toggle / desktop hover
   const [activeProductId, setActiveProductId] = useState(null);
 
   const [editingProduct, setEditingProduct] = useState(null);
@@ -88,12 +88,16 @@ export default function CheckoutScreen() {
     }
 
     let fullName = 'Lead Cashier';
-    let role = 'cashier';
+    let role = 'admin'; // Defaulting to admin if 'admin' selected, or ensure exact match
     if (loginIdentifier === 'admin') {
       fullName = 'Administrator';
       role = 'admin';
     } else if (loginIdentifier === 'cashier2') {
       fullName = 'Floor Cashier';
+      role = 'cashier';
+    } else {
+      fullName = 'Lead Cashier';
+      role = 'cashier';
     }
 
     const userObj = { username: loginIdentifier, fullName, role };
@@ -700,8 +704,16 @@ export default function CheckoutScreen() {
                   key={p.id} 
                   onMouseEnter={() => setActiveProductId(p.id)}
                   onMouseLeave={() => setActiveProductId(null)}
+                  onClick={() => {
+                    // Tapping the card body toggles the admin options on mobile, otherwise adds to cart
+                    if (currentUser.role === 'admin') {
+                      setActiveProductId(activeProductId === p.id ? null : p.id);
+                    } else {
+                      addToCart(p);
+                    }
+                  }}
                   style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
                     padding: '12px', 
                     borderRadius: '10px', 
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)', 
@@ -709,35 +721,37 @@ export default function CheckoutScreen() {
                     flexDirection: 'column', 
                     justifyContent: 'space-between', 
                     boxSizing: 'border-box',
-                    position: 'relative'
+                    position: 'relative',
+                    cursor: 'pointer',
+                    border: currentUser.role === 'admin' && activeProductId === p.id ? '2px solid #2563eb' : '2px solid transparent'
                   }}
                 >
-                  {/* Mobile Admin toggle button in top-right corner */}
+                  {/* Explicit Manage/Action Button for Mobile Admins */}
                   {currentUser.role === 'admin' && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveProductId(activeProductId === p.id ? null : p.id);
-                      }}
-                      title="Toggle Options"
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: 'rgba(0,0,0,0.06)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '2px 6px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        color: '#4b5563'
-                      }}
-                    >
-                      ⚙️
-                    </button>
+                    <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(p);
+                        }}
+                        title="Add to Cart"
+                        style={{
+                          background: '#059669',
+                          border: 'none',
+                          borderRadius: '4px',
+                          color: '#ffffff',
+                          padding: '3px 6px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Cart
+                      </button>
+                    </div>
                   )}
 
-                  <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1, paddingRight: currentUser.role === 'admin' ? '20px' : '0' }}>
+                  <div style={{ flex: 1, paddingRight: currentUser.role === 'admin' ? '45px' : '0' }}>
                     <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#111827' }}>{p.name}</h3>
                     <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#4b5563' }}>{p.category}</p>
                     <p style={{ margin: '0', fontWeight: 'bold', color: '#059669', fontSize: '14px' }}>GHC {parseFloat(p.price || 0).toFixed(2)}</p>
@@ -750,9 +764,11 @@ export default function CheckoutScreen() {
                       gap: '8px', 
                       marginTop: '10px',
                       paddingTop: '8px',
-                      borderTop: '1px solid rgba(209, 213, 219, 0.6)',
+                      borderTop: '1px solid rgba(209, 213, 219, 0.8)',
                       animation: 'fadeIn 0.2s ease-in-out'
-                    }}>
+                    }}
+                    onClick={(e) => e.stopPropagation()} // Prevent card click triggers when clicking buttons
+                    >
                       <button 
                         onClick={() => handleOpenEdit(p)}
                         style={{ 
