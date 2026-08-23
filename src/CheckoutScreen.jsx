@@ -27,6 +27,9 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
+  // State to track which product card is currently being hovered
+  const [hoveredProductId, setHoveredProductId] = useState(null);
+
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -695,6 +698,8 @@ export default function CheckoutScreen() {
               {filteredProducts.map(p => (
                 <div 
                   key={p.id} 
+                  onMouseEnter={() => setHoveredProductId(p.id)}
+                  onMouseLeave={() => setHoveredProductId(null)}
                   style={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                     padding: '12px', 
@@ -703,7 +708,8 @@ export default function CheckoutScreen() {
                     display: 'flex', 
                     flexDirection: 'column', 
                     justifyContent: 'space-between', 
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    position: 'relative'
                   }}
                 >
                   <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1 }}>
@@ -713,13 +719,14 @@ export default function CheckoutScreen() {
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
-                  {currentUser.role === 'admin' && (
+                  {currentUser.role === 'admin' && hoveredProductId === p.id && (
                     <div style={{ 
                       display: 'flex', 
                       gap: '8px', 
                       marginTop: '10px',
                       paddingTop: '8px',
-                      borderTop: '1px solid rgba(209, 213, 219, 0.6)'
+                      borderTop: '1px solid rgba(209, 213, 219, 0.6)',
+                      animation: 'fadeIn 0.2s ease-in-out'
                     }}>
                       <button 
                         onClick={() => handleOpenEdit(p)}
