@@ -35,6 +35,9 @@ export default function CheckoutScreen() {
 
   const isSyncingRef = useRef(false);
 
+  // State to track which product card is currently hovered
+  const [hoveredProductId, setHoveredProductId] = useState(null);
+
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newCategory, setNewCategory] = useState('');
@@ -340,7 +343,6 @@ export default function CheckoutScreen() {
     String(p.category || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // If no Web App URL is configured yet, show Client Setup Screen first
   if (!webAppUrl) {
     return (
       <div style={{ 
@@ -665,7 +667,19 @@ export default function CheckoutScreen() {
               {filteredProducts.map(p => (
                 <div 
                   key={p.id} 
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '12px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}
+                  onMouseEnter={() => setHoveredProductId(p.id)}
+                  onMouseLeave={() => setHoveredProductId(null)}
+                  style={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                    padding: '12px', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between', 
+                    boxSizing: 'border-box',
+                    position: 'relative' // Required for absolute positioning of hover actions
+                  }}
                 >
                   <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1 }}>
                     <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#111827' }}>{p.name}</h3>
@@ -674,17 +688,38 @@ export default function CheckoutScreen() {
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
+                  {/* Fainted Symbol-Only Actions on Hover for Admin */}
                   {currentUser.role === 'admin' && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: '8px' }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '8px', 
+                      right: '8px', 
+                      display: 'flex', 
+                      gap: '4px',
+                      opacity: hoveredProductId === p.id ? 1 : 0.25, // Fainted normally, bright on hover
+                      transition: 'opacity 0.2s ease-in-out',
+                      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                      padding: '2px 4px',
+                      borderRadius: '6px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                    }}>
                       <button 
-                        title="Edit Product / Restock"
+                        title="Edit Product"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenEdit(p);
                         }}
-                        style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', fontSize: '12px', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          fontSize: '14px', 
+                          cursor: 'pointer', 
+                          padding: '4px', 
+                          color: '#2563eb',
+                          lineHeight: 1
+                        }}
                       >
-                        ✏️ Edit
+                        ✏️
                       </button>
                       <button 
                         title="Delete Product"
@@ -692,9 +727,17 @@ export default function CheckoutScreen() {
                           e.stopPropagation();
                           handleDeleteProduct(p);
                         }}
-                        style={{ backgroundColor: '#dc2626', color: 'white', border: 'none', fontSize: '12px', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          fontSize: '14px', 
+                          cursor: 'pointer', 
+                          padding: '4px', 
+                          color: '#dc2626',
+                          lineHeight: 1
+                        }}
                       >
-                        ✕ Delete
+                        🗑️
                       </button>
                     </div>
                   )}
