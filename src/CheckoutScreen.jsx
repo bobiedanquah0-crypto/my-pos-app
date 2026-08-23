@@ -27,9 +27,6 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // State to track which product card is currently being hovered
-  const [hoveredProductId, setHoveredProductId] = useState(null);
-
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -37,6 +34,9 @@ export default function CheckoutScreen() {
   const [editStock, setEditStock] = useState('');
 
   const isSyncingRef = useRef(false);
+
+  // State to track which product card is currently hovered (for desktop)
+  const [hoveredProductId, setHoveredProductId] = useState(null);
 
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
@@ -135,10 +135,6 @@ export default function CheckoutScreen() {
     } else {
       setCart([...cart, { ...product, qty: 1 }]);
     }
-  };
-
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.id !== productId));
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -464,11 +460,10 @@ export default function CheckoutScreen() {
               🛒 Cart ({totalCartItemsCount})
             </button>
 
-            {/* Cart Dropdown / Drawer */}
             {showCartDrawer && (
               <div style={{ 
-                position: 'absolute', top: '45px', right: '0', width: '300px', maxWidth: '85vw',
-                backgroundColor: 'rgba(17, 24, 39, 0.96)', backdropFilter: 'blur(10px)',
+                position: 'absolute', top: '45px', right: '0', width: '280px', maxWidth: '85vw',
+                backgroundColor: 'rgba(17, 24, 39, 0.95)', backdropFilter: 'blur(10px)',
                 border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', 
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 1050, padding: '16px', boxSizing: 'border-box',
                 display: 'flex', flexDirection: 'column', gap: '12px'
@@ -481,29 +476,11 @@ export default function CheckoutScreen() {
                 {cart.length === 0 ? (
                   <p style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', margin: '10px 0' }}>Your cart is empty.</p>
                 ) : (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {cart.map((item, index) => (
-                      <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#f3f4f6', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, paddingRight: '8px' }}>
-                          <span style={{ fontWeight: '500' }}>{item.name}</span>
-                          <span style={{ color: '#34d399', fontSize: '12px' }}>GHC {(item.price * item.qty).toFixed(2)} <span style={{ color: '#9ca3af' }}>(x{item.qty})</span></span>
-                        </div>
-                        <button 
-                          onClick={() => removeFromCart(item.id)}
-                          title="Remove item"
-                          style={{ 
-                            background: 'rgba(239, 68, 68, 0.2)', 
-                            border: '1px solid rgba(239, 68, 68, 0.4)', 
-                            color: '#f87171', 
-                            borderRadius: '4px', 
-                            padding: '4px 8px', 
-                            fontSize: '11px', 
-                            fontWeight: 'bold', 
-                            cursor: 'pointer' 
-                          }}
-                        >
-                          ✕ Remove
-                        </button>
+                      <li key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#f3f4f6', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
+                        <span>{item.name} <span style={{ color: '#9ca3af' }}>x{item.qty}</span></span>
+                        <span style={{ fontWeight: 'bold', color: '#34d399' }}>GHC {(item.price * item.qty).toFixed(2)}</span>
                       </li>
                     ))}
                   </ul>
@@ -515,20 +492,12 @@ export default function CheckoutScreen() {
                       <span>Total:</span>
                       <span style={{ color: '#34d399' }}>GHC {totalAmount.toFixed(2)}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={() => setCart([])} 
-                        style={{ backgroundColor: 'rgba(75, 85, 99, 0.8)', color: 'white', padding: '10px 8px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', flex: 1 }}
-                      >
-                        Clear Cart
-                      </button>
-                      <button 
-                        onClick={completeSale} 
-                        style={{ backgroundColor: '#059669', color: 'white', padding: '10px 8px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', flex: 2, boxShadow: '0 2px 8px rgba(5, 150, 105, 0.4)' }}
-                      >
-                        Complete Sale
-                      </button>
-                    </div>
+                    <button 
+                      onClick={completeSale} 
+                      style={{ backgroundColor: '#059669', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', width: '100%', boxShadow: '0 2px 8px rgba(5, 150, 105, 0.4)' }}
+                    >
+                      Complete Sale
+                    </button>
                   </div>
                 )}
               </div>
@@ -698,8 +667,6 @@ export default function CheckoutScreen() {
               {filteredProducts.map(p => (
                 <div 
                   key={p.id} 
-                  onMouseEnter={() => setHoveredProductId(p.id)}
-                  onMouseLeave={() => setHoveredProductId(null)}
                   style={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                     padding: '12px', 
@@ -719,54 +686,56 @@ export default function CheckoutScreen() {
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
-                  {currentUser.role === 'admin' && hoveredProductId === p.id && (
+                  {/* Neutral Gray Action Buttons (Always visible on mobile & desktop for admins) */}
+                  {currentUser.role === 'admin' && (
                     <div style={{ 
+                      position: 'absolute', 
+                      top: '8px', 
+                      right: '8px', 
                       display: 'flex', 
-                      gap: '8px', 
-                      marginTop: '10px',
-                      paddingTop: '8px',
-                      borderTop: '1px solid rgba(209, 213, 219, 0.6)',
-                      animation: 'fadeIn 0.2s ease-in-out'
+                      gap: '4px',
+                      backgroundColor: 'rgba(243, 244, 246, 0.95)', 
+                      backdropFilter: 'blur(4px)',
+                      padding: '3px 6px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(209, 213, 219, 0.6)',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                     }}>
                       <button 
-                        onClick={() => handleOpenEdit(p)}
+                        title="Edit Product"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEdit(p);
+                        }}
                         style={{ 
-                          flex: 1, 
-                          backgroundColor: '#f3f4f6', 
-                          border: '1px solid #d1d5db', 
-                          borderRadius: '6px', 
-                          padding: '6px 4px', 
-                          fontSize: '12px', 
-                          fontWeight: 'bold', 
+                          background: 'none', 
+                          border: 'none', 
+                          fontSize: '13px', 
                           cursor: 'pointer', 
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
+                          padding: '2px', 
+                          color: '#4b5563', 
+                          lineHeight: 1
                         }}
                       >
-                        ✏️ Edit
+                        ✏️
                       </button>
                       <button 
-                        onClick={() => handleDeleteProduct(p)}
+                        title="Delete Product"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProduct(p);
+                        }}
                         style={{ 
-                          flex: 1, 
-                          backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                          border: '1px solid rgba(239, 68, 68, 0.3)', 
-                          borderRadius: '6px', 
-                          padding: '6px 4px', 
-                          fontSize: '12px', 
-                          fontWeight: 'bold', 
+                          background: 'none', 
+                          border: 'none', 
+                          fontSize: '13px', 
                           cursor: 'pointer', 
-                          color: '#dc2626',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
+                          padding: '2px', 
+                          color: '#4b5563', 
+                          lineHeight: 1
                         }}
                       >
-                        🗑️ Delete
+                        🗑️
                       </button>
                     </div>
                   )}
