@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase Configuration
 const SUPABASE_URL = 'https://hihphgfrfvpmytasnmvd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -16,15 +15,22 @@ export default function CheckoutScreen() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
+  const [accounts, setAccounts] = useState([]);
+  const [loginPin, setLoginPin] = useState('');
+  const [selectedAccountForLogin, setSelectedAccountForLogin] = useState(null);
+
+  // New account form state (for Admin UI creation)
+  const [newAccountName, setNewAccountName] = useState('');
+  const [newAccountRole, setNewAccountRole] = useState('cashier');
+  const [newAccountPin, setNewAccountPin] = useState('');
+
   const [cart, setCart] = useState([]);
-  const [sales, setSales] = useState([]);
   const [salesHistory, setSalesHistory] = useState([]);
-  
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showManageUsers, setShowManageUsers] = useState(false);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [showSalesModal, setShowSalesModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
@@ -33,6 +39,32 @@ export default function CheckoutScreen() {
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
+
+  // Fetch accounts from Supabase
+  const fetchAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Users')
+        .select('*')
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setAccounts(data);
+      } else {
+        // Fallback default admin if table is empty
+        setAccounts([
+          { id: 'default-admin', fullName: 'Administrator', role: 'admin', pin: '1234', client_id: clientId }
+        ]);
+      }
+    } catch (err) {
+      console.error("Error fetching accounts:", err);
+      // Fallback default admin if table doesn't exist yet
+      setAccounts([
+        { id: 'default-admin', fullName: 'Administrator', role: 'admin', pin: '1234', client_id: clientId }
+      ]);
+    }
+  };
 
   const fetchInventory = async (isBackground = false) => {
     if (!clientId) return;
@@ -45,10 +77,8 @@ export default function CheckoutScreen() {
         .eq('client_id', clientId);
 
       if (error) throw error;
-      if (data) {
-        if (!isBackground || !isSyncingRef.current) {
-          setProducts(data);
-        }
+      if (data && (!isBackground || !isSyncingRef.current)) {
+        setProducts(data);
       }
     } catch (error) {
       console.error("Failed to fetch live inventory from Supabase:", error);
@@ -57,7 +87,6 @@ export default function CheckoutScreen() {
 
   const fetchSalesHistory = async () => {
     try {
-      console.log("Querying sales for client_id:", clientId);
       const { data, error } = await supabase
         .from('Sales')
         .select('*')
@@ -65,7 +94,6 @@ export default function CheckoutScreen() {
         .order('Timestamp', { ascending: false });
 
       if (error) throw error;
-      console.log("Sales history fetched successfully:", data);
       if (data) setSalesHistory(data);
     } catch (error) {
       console.error("Error fetching sales history:", error);
@@ -74,12 +102,115 @@ export default function CheckoutScreen() {
 
   useEffect(() => {
     if (clientId) {
+      fetchAccounts();
       fetchInventory(false);
       const intervalId = setInterval(() => fetchInventory(true), 15000);
       return () => clearInterval(intervalId);
     }
   }, [clientId]);
 
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedAccountForLogin) {
+      alert("Please select an account first.");
+      return;
+    }
+
+    // If a PIN is set for the account, verify it
+    if (selectedAccountForLogin.pin && selectedAccountForLogin.pin !== loginPin) {
+      alert("Incorrect PIN code!");
+      return;
+    }
+
+    setCurrentUser(selectedAccountForLogin);
+    localStorage.setItem('pos_current_user', JSON.stringify(selectedAccountForLogin));
+    setLoginPin('');
+    setSelectedAccountForLogin(null);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('pos_current_user');
+  };
+
+  const handleCreateAccount = async (e) => {
+    e.preventDefault();
+    if (!newAccountName || !newAccountPin) {
+      alert("Please fill in the account name and PIN.");
+      return;
+    }
+
+    const accountPayload = {
+      client_id: clientId,
+      fullName: newAccountName.trim(),
+      role: newAccountRole,
+      pin: newAccountPin.trim()
+    };
+
+    try {
+      const { error } = await supabase.from('Users').insert([accountPayload]);
+      if (error) throw error;
+
+      alert(`Account for "${newAccountName}" created successfully!`);
+      setNewAccountName('');
+      setNewAccountPin('');
+      fetchAccounts();
+    } catch (err) {
+      console.error("Error creating user account:", err);
+      alert(`Error creating account: Make sure the 'Users' table exists in Supabase. Details: ${err.message}`);
+    }
+  };
+
+  // If no user is logged in, show UI Account Selector & Login
+  if (!currentUser) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111827', color: '#fff', fontFamily: 'sans-serif', padding: '20px' }}>
+        <div style={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', padding: '30px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', width: '100%', maxWidth: '360px', boxSizing: 'border-box' }}>
+          <h2 style={{ marginBottom: '20px', textAlign: 'center', fontSize: '20px' }}>LINAURA SCENTS - Login</h2>
+          
+          {!selectedAccountForLogin ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <p style={{ fontSize: '13px', color: '#9ca3af', textAlign: 'center', margin: '0 0 10px 0' }}>Select your account profile:</p>
+              {accounts.map((acc) => (
+                <button 
+                  key={acc.id || acc.fullName}
+                  onClick={() => setSelectedAccountForLogin(acc)}
+                  style={{ padding: '12px', backgroundColor: acc.role === 'admin' ? '#2563eb' : '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <span>{acc.fullName}</span>
+                  <span style={{ fontSize: '11px', opacity: 0.8, textTransform: 'uppercase' }}>{acc.role}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ fontSize: '14px', color: '#34d399', fontWeight: 'bold', textAlign: 'center' }}>
+                Logging in as: {selectedAccountForLogin.fullName}
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '5px' }}>Enter Account PIN</label>
+                <input 
+                  type="password" 
+                  value={loginPin} 
+                  onChange={(e) => setLoginPin(e.target.value)} 
+                  placeholder="Enter PIN" 
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }}
+                  autoFocus
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" onClick={() => { setSelectedAccountForLogin(null); setLoginPin(''); }} style={{ flex: 1, padding: '10px', backgroundColor: '#4b5563', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Back</button>
+                <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Login</button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Cart and sale functions
   const addToCart = (product) => {
     const itemName = product["Items Name"];
     const itemPrice = Number(product.Price || 0);
@@ -109,7 +240,6 @@ export default function CheckoutScreen() {
 
   const handlePrintReceipt = (completedCart, total, cashierName) => {
     const receiptWindow = window.open('', '_blank', 'width=300,height=600');
-    
     const receiptHTML = `
       <!DOCTYPE html>
       <html>
@@ -133,37 +263,23 @@ export default function CheckoutScreen() {
           <div>Cashier: ${cashierName}</div>
           <div class="line"></div>
           <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th class="center">Qty</th>
-                <th class="right">Price</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Item</th><th class="center">Qty</th><th class="right">Price</th></tr></thead>
             <tbody>
               ${completedCart.map(item => `
-                <tr>
-                  <td>${item.name}</td>
-                  <td class="center">${item.qty}</td>
-                  <td class="right">${(item.price * item.qty).toFixed(2)}</td>
-                </tr>
+                <tr><td>${item.name}</td><td class="center">${item.qty}</td><td class="right">${(item.price * item.qty).toFixed(2)}</td></tr>
               `).join('')}
             </tbody>
           </table>
           <div class="line"></div>
           <div class="bold" style="display: flex; justify-content: space-between; font-size: 13px;">
-            <span>TOTAL:</span>
-            <span>GHC ${total.toFixed(2)}</span>
+            <span>TOTAL:</span><span>GHC ${total.toFixed(2)}</span>
           </div>
           <div class="line"></div>
           <div class="center" style="margin-top: 10px;">Thank you for shopping with us!</div>
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
+          <script>window.onload = function() { window.print(); window.close(); };</script>
         </body>
       </html>
     `;
-
     receiptWindow.document.write(receiptHTML);
     receiptWindow.document.close();
   };
@@ -175,7 +291,6 @@ export default function CheckoutScreen() {
     }
 
     isSyncingRef.current = true;
-
     const updatedProducts = products.map(prod => {
       const cartMatch = cart.find(item => item.id === prod.id);
       if (cartMatch) {
@@ -192,34 +307,26 @@ export default function CheckoutScreen() {
     const newSaleRecord = {
       client_id: clientId,
       Timestamp: currentDate.toLocaleString(),
-      Cashier: currentUser?.fullName || 'Administrator',
+      Cashier: currentUser.fullName,
       "Total Amount (GHC)": totalAmount,
       "Items Summary": itemsSummaryString
     };
-
-    setSales([newSaleRecord, ...sales]);
     
     const activeCart = [...cart];
     const currentTotal = totalAmount;
-    const cashierName = currentUser?.fullName || 'Administrator';
+    const cashierName = currentUser.fullName;
 
     setCart([]);
     setShowCartDrawer(false);
-
     handlePrintReceipt(activeCart, currentTotal, cashierName);
     alert(`Sale of GHC ${currentTotal.toFixed(2)} Completed Successfully!`);
 
     try {
       await supabase.from('Sales').insert([newSaleRecord]);
-
       for (const item of activeCart) {
         const matchingProduct = updatedProducts.find(p => p.id === item.id);
         if (matchingProduct) {
-          await supabase
-            .from('Inventory')
-            .update({ Stock: matchingProduct.Stock })
-            .eq('id', item.id)
-            .eq('client_id', clientId);
+          await supabase.from('Inventory').update({ Stock: matchingProduct.Stock }).eq('id', item.id).eq('client_id', clientId);
         }
       }
     } catch (error) {
@@ -231,10 +338,7 @@ export default function CheckoutScreen() {
 
   const handleAddProductSubmit = async (e) => {
     e.preventDefault();
-    if (!newName || !newPrice) {
-      alert("Please provide product name and price.");
-      return;
-    }
+    if (!newName || !newPrice) return;
 
     const productPayload = {
       client_id: clientId,
@@ -244,21 +348,14 @@ export default function CheckoutScreen() {
     };
 
     try {
-      const { error } = await supabase
-        .from('Inventory')
-        .insert([productPayload]);
-
+      const { error } = await supabase.from('Inventory').insert([productPayload]);
       if (error) throw error;
-
-      alert("Product successfully added to LINAURA SCENTS inventory!");
-      setNewName('');
-      setNewPrice('');
-      setNewStock('');
+      alert("Product successfully added!");
+      setNewName(''); setNewPrice(''); setNewStock('');
       setShowAddProduct(false);
       fetchInventory(false);
     } catch (error) {
       console.error("Error saving product:", error);
-      alert(`Error saving product to cloud: ${error.message || JSON.stringify(error)}`);
     }
   };
 
@@ -274,14 +371,19 @@ export default function CheckoutScreen() {
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
         
-        {/* Top Control Bar */}
+        {/* Top Bar */}
         <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            style={{ backgroundColor: 'transparent', color: '#ffffff', border: '2px solid rgba(255, 255, 255, 0.6)', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-          >
-            ☰ Menu
-          </button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              style={{ backgroundColor: 'transparent', color: '#ffffff', border: '2px solid rgba(255, 255, 255, 0.6)', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+            >
+              ☰ Menu
+            </button>
+            <span style={{ color: '#34d399', fontSize: '13px', fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.6)', padding: '6px 10px', borderRadius: '6px' }}>
+              👤 {currentUser.fullName} ({currentUser.role})
+            </span>
+          </div>
 
           <div style={{ position: 'relative' }}>
             <button 
@@ -291,7 +393,6 @@ export default function CheckoutScreen() {
               🛒 Cart ({totalCartItemsCount})
             </button>
 
-            {/* Cart Dropdown */}
             {showCartDrawer && (
               <div style={{ 
                 position: 'absolute', top: '45px', right: '0', width: '300px', maxWidth: '85vw',
@@ -345,17 +446,69 @@ export default function CheckoutScreen() {
               <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffff', fontSize: '22px', cursor: 'pointer' }}>&times;</button>
             </div>
             <button onClick={() => { fetchInventory(false); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>🔄 Refresh Inventory</button>
-            <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
-            <button onClick={() => { fetchSalesHistory(); setShowSalesModal(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(234, 179, 8, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>📊 View Sales Report</button>
+            
+            {/* Admin Exclusive Tools */}
+            {currentUser.role === 'admin' && (
+              <>
+                <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
+                <button onClick={() => { fetchSalesHistory(); setShowSalesModal(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(234, 179, 8, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>📊 View Sales Report</button>
+                <button onClick={() => { setShowManageUsers(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(147, 51, 234, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>👥 Manage Users / Accounts</button>
+              </>
+            )}
+
+            <button onClick={handleLogout} style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer', marginTop: 'auto' }}>🚪 Switch Account / Logout</button>
           </div>
         )}
 
-        {/* Sales History Report Modal */}
+        {/* Manage Users Modal (Admin UI) */}
+        {showManageUsers && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '450px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Create New User Account</h3>
+                <button onClick={() => setShowManageUsers(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+              </div>
+
+              <form onSubmit={handleCreateAccount} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Full Name / Account Name</label>
+                  <input type="text" value={newAccountName} onChange={e => setNewAccountName(e.target.value)} placeholder="e.g., Cashier Three" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Role Type</label>
+                  <select value={newAccountRole} onChange={e => setNewAccountRole(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }}>
+                    <option value="cashier">Cashier</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Security PIN Code</label>
+                  <input type="password" value={newAccountPin} onChange={e => setNewAccountPin(e.target.value)} placeholder="e.g., 5678" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <button type="submit" style={{ backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' }}>Save New Account</button>
+              </form>
+
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px' }}>
+                <h4 style={{ color: '#fff', fontSize: '13px', margin: '0 0 8px 0' }}>Existing Active Accounts:</h4>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '120px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {accounts.map((acc, index) => (
+                    <li key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#d1d5db', backgroundColor: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px' }}>
+                      <span>{acc.fullName}</span>
+                      <span style={{ color: '#34d399', textTransform: 'uppercase' }}>{acc.role}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sales History Modal */}
         {showSalesModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '20px', gap: '15px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <h3 style={{ color: '#ffffff', margin: 0 }}>Cashier Sales History</h3>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Cashier Sales History Breakdown</h3>
                 <button onClick={() => setShowSalesModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
               </div>
               <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
@@ -370,11 +523,7 @@ export default function CheckoutScreen() {
                       </div>
                       <div style={{ color: '#9ca3af', fontSize: '12px' }}>Time: {sale.Timestamp}</div>
                       <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                        Items: {
-                          typeof sale["Items Summary"] === 'object' && sale["Items Summary"] !== null
-                            ? JSON.stringify(sale["Items Summary"])
-                            : String(sale["Items Summary"] || 'N/A')
-                        }
+                        Items: {typeof sale["Items Summary"] === 'object' && sale["Items Summary"] !== null ? JSON.stringify(sale["Items Summary"]) : String(sale["Items Summary"] || 'N/A')}
                       </div>
                     </div>
                   ))
@@ -403,12 +552,11 @@ export default function CheckoutScreen() {
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                <button type="submit" style={{ flex: '1', backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
               </div>
             </form>
           </div>
         ) : (
-          /* Main Product Catalog Grid */
           <div>
             <div style={{ marginBottom: '15px' }}>
               <input 
