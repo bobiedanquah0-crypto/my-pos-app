@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import linaImage from './lina.jpg';
+
 const SUPABASE_URL = 'https://hihphgfrfvpmytasnmvd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -431,7 +432,6 @@ export default function CheckoutScreen() {
     String(p["Items Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-
   return (
     <div style={{
       backgroundImage: `linear-gradient(135deg, #02060E 0%, #C50337 100%), url(${linaImage})`,
@@ -439,12 +439,13 @@ export default function CheckoutScreen() {
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-      minHeight: '100vh'
+      minHeight: '100vh',
+      fontFamily: 'sans-serif'
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
       
         {/* Top Bar */}
-        <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1200px', margin: '0 auto 15px auto' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -509,6 +510,118 @@ export default function CheckoutScreen() {
           </div>
         </div>
 
+        {/* Search Input Bar */}
+        <div style={{ marginBottom: '20px', maxWidth: '600px', margin: '0 auto 20px auto' }}>
+          <input 
+            type="text"
+            placeholder="Search Linaura products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              backgroundColor: 'rgba(17, 24, 39, 0.8)',
+              color: '#fff',
+              fontSize: '14px',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
+        {/* Centered Product Grid Container */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gap: '20px',
+          justifyContent: 'center',
+          alignItems: 'stretch',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '10px 0'
+        }}>
+          {filteredProducts.map((product, index) => (
+            <div 
+              key={index}
+              onClick={() => addToCart(product)}
+              style={{
+                backgroundColor: 'rgba(17, 24, 39, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '12px',
+                padding: '15px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, border-color 0.2s ease',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}
+            >
+              <div>
+                <div style={{ 
+                  height: '130px', 
+                  backgroundColor: '#374151', 
+                  borderRadius: '8px', 
+                  marginBottom: '10px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: '#9ca3af',
+                  fontSize: '12px'
+                }}>
+                  Product Image
+                </div>
+                <h4 style={{ color: '#fff', fontSize: '14px', margin: '0 0 5px 0', fontWeight: 'bold' }}>
+                  {product["Items Name"]}
+                </h4>
+                <p style={{ color: '#34d399', fontSize: '13px', margin: '0 0 10px 0', fontWeight: '600' }}>
+                  GHC {Number(product.Price || 0).toFixed(2)}
+                </p>
+                <p style={{ color: '#9ca3af', fontSize: '11px', margin: '0 0 12px 0' }}>
+                  Stock: {product.Stock || 0}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                  style={{
+                    backgroundColor: '#C50337',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  Add to Cart
+                </button>
+
+                {currentUser.role === 'admin' && (
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button 
+                      onClick={(e) => startEditProduct(product, e)}
+                      style={{ flex: 1, backgroundColor: '#374151', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '10px', cursor: 'pointer' }}
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={(e) => handleDeleteProduct(product["Items Name"], e)}
+                      style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.3)', color: '#f87171', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '10px', cursor: 'pointer' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Sidebar Menu */}
         {isSidebarOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '280px', height: '100%', backgroundColor: 'rgba(17, 24, 39, 0.96)', zIndex: 1100, padding: '25px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -538,6 +651,37 @@ export default function CheckoutScreen() {
                 <button onClick={() => { setShowManageUsers(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(147, 51, 234, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>👥 Manage Users / Accounts</button>
               </>
             )}
+          </div>
+        )}
+
+        {/* Add Product Modal (Admin Only) */}
+        {showAddProduct && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '400px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Add New Product</h3>
+                <button onClick={() => setShowAddProduct(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+              </div>
+
+              <form onSubmit={handleAddProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Product Name</label>
+                  <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., Oud Essence" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Price (GHC)</label>
+                  <input type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Stock Quantity</label>
+                  <input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="0" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                  <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save Product</button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
@@ -623,20 +767,18 @@ export default function CheckoutScreen() {
                 <h3 style={{ color: '#ffffff', margin: 0 }}>Cashier Sales History Breakdown</h3>
                 <button onClick={() => setShowSalesModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
               </div>
-              <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {salesHistory.length === 0 ? (
-                  <p style={{ color: '#9ca3af', textAlign: 'center' }}>No sales records found.</p>
+                  <p style={{ color: '#9ca3af', textAlign: 'center' }}>No sales recorded yet.</p>
                 ) : (
                   salesHistory.map((sale, idx) => (
-                    <div key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', color: '#f3f4f6' }}>
+                    <div key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#e5e7eb', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span style={{ color: '#34d399' }}>Cashier: {sale.Cashier}</span>
-                        <span>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
+                        <span>Cashier: {sale.Cashier}</span>
+                        <span style={{ color: '#34d399' }}>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
                       </div>
-                      <div style={{ color: '#9ca3af', fontSize: '12px' }}>Time: {sale.Timestamp}</div>
-                      <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                        Items: {typeof sale["Items Summary"] === 'object' && sale["Items Summary"] !== null ? JSON.stringify(sale["Items Summary"]) : String(sale["Items Summary"] || 'N/A')}
-                      </div>
+                      <div style={{ color: '#9ca3af' }}>Items: {sale["Items Summary"]}</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280' }}>{sale.Timestamp}</div>
                     </div>
                   ))
                 )}
@@ -645,104 +787,6 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Add Product View Form */}
-        {showAddProduct ? (
-          <div style={{ backgroundColor: 'rgba(17, 24, 39, 0.9)', padding: '20px', borderRadius: '12px', maxWidth: '400px', margin: '20px auto', border: '1px solid rgba(255,255,255,0.2)' }}>
-            <h3 style={{ color: '#ffffff', marginTop: 0, marginBottom: '15px' }}>Add New Product</h3>
-            <form onSubmit={handleAddProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Product Name</label>
-                <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., Luxury Oud" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} required />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Price (GHC)</label>
-                <input type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} required />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Stock Quantity</label>
-                <input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="10" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <div>
-            <div style={{ marginBottom: '15px' }}>
-              <input 
-                type="text" 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)} 
-                placeholder="Search Linaura products..."
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.85)', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
-              {filteredProducts.map((product, index) => (
-                <ProductCard 
-                  key={index}
-                  product={product}
-                  currentUser={currentUser}
-                  onAddToCart={addToCart}
-                  onStartEdit={startEditProduct}
-                  onDelete={handleDeleteProduct}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
-
-// Sub-component to isolate each product card's individual hover state
-function ProductCard({ product, currentUser, onAddToCart, onStartEdit, onDelete }) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div 
-      onClick={() => onAddToCart(product)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{ 
-        backgroundColor: 'rgba(17, 24, 39, 0.85)', backdropFilter: 'blur(8px)', 
-        border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '10px', padding: '12px', 
-        cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-      }}
-    >
-      <div>
-        <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Items Name"]}</h4>
-      </div>
-      <div>
-        <div style={{ marginTop: '8px', marginBottom: '8px' }}>
-          <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>GHC {Number(product.Price || 0).toFixed(2)}</div>
-          <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.Stock ?? 0}</div>
-        </div>
-
-        {/* Admin Edit & Delete Buttons (Isolated per card hover) */}
-        {currentUser.role === 'admin' && isHovered && (
-          <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-            <button 
-              onClick={(e) => onStartEdit(product, e)} 
-              style={{ flex: 1, backgroundColor: 'transparent', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              ✏️ 
-            </button>
-            <button 
-              onClick={(e) => onDelete(product["Items Name"], e)} 
-              style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              &times; 
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
