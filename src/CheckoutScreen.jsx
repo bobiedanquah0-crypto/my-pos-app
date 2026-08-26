@@ -34,17 +34,20 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // Edit Product State
+  // Add Product Form State (Added newImageUrl)
+  const [newName, setNewName] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const [newStock, setNewStock] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
+
+  // Edit Product State (Added editImageUrl)
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
 
   const isSyncingRef = useRef(false);
-
-  const [newName, setNewName] = useState('');
-  const [newPrice, setNewPrice] = useState('');
-  const [newStock, setNewStock] = useState('');
 
   const fetchAccounts = async () => {
     const defaultAdmin = { 
@@ -137,34 +140,6 @@ export default function CheckoutScreen() {
     setCurrentUser(null);
     localStorage.removeItem('pos_current_user');
     setIsSidebarOpen(false);
-  };
-
-  const handleCreateAccount = async (e) => {
-    e.preventDefault();
-    if (!newAccountName || !newAccountPin) {
-      alert("Please fill in the account name and PIN.");
-      return;
-    }
-
-    const accountPayload = {
-      client_id: clientId,
-      fullName: newAccountName.trim(),
-      role: newAccountRole,
-      pin: newAccountPin.trim()
-    };
-
-    try {
-      const { error } = await supabase.from('Users').insert([accountPayload]);
-      if (error) throw error;
-
-      alert(`Account for "${newAccountName}" created successfully!`);
-      setNewAccountName('');
-      setNewAccountPin('');
-      fetchAccounts();
-    } catch (err) {
-      console.error("Error creating user account:", err);
-      alert(`Error creating account: Make sure the 'Users' table exists in Supabase. Details: ${err.message}`);
-    }
   };
 
   if (!currentUser) {
@@ -351,14 +326,15 @@ export default function CheckoutScreen() {
       client_id: clientId,
       "Items Name": newName.trim(),
       Price: parseFloat(newPrice),
-      Stock: parseInt(newStock) || 0
+      Stock: parseInt(newStock) || 0,
+      image_url: newImageUrl.trim() // Added image field
     };
 
     try {
       const { error } = await supabase.from('Inventory').insert([productPayload]);
       if (error) throw error;
       alert("Product successfully added!");
-      setNewName(''); setNewPrice(''); setNewStock('');
+      setNewName(''); setNewPrice(''); setNewStock(''); setNewImageUrl('');
       setShowAddProduct(false);
       fetchInventory(false);
     } catch (error) {
@@ -374,6 +350,7 @@ export default function CheckoutScreen() {
     setEditName(identifier || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
+    setEditImageUrl(product.image_url || ''); // Populates edit modal with existing image URL
   };
 
   const handleEditProductSubmit = async (e) => {
@@ -391,7 +368,8 @@ export default function CheckoutScreen() {
         .update({
           "Items Name": editName.trim(),
           Price: parseFloat(editPrice),
-          Stock: parseInt(editStock) || 0
+          Stock: parseInt(editStock) || 0,
+          image_url: editImageUrl.trim() // Updates image field in DB
         })
         .eq('Items Name', targetName)
         .eq('client_id', clientId);
@@ -442,7 +420,6 @@ export default function CheckoutScreen() {
       minHeight: '100vh',
       fontFamily: 'sans-serif'
     }}>
-      {/* Pure CSS Hover Styling for Smooth Button Reveal */}
       <style>{`
         .product-card {
           transition: all 0.3s ease;
@@ -582,19 +559,30 @@ export default function CheckoutScreen() {
               }}
             >
               <div>
+                {/* Image Container: Renders image if URL exists, else falls back to placeholder */}
                 <div style={{ 
                   height: '130px', 
                   backgroundColor: '#374151', 
                   borderRadius: '8px', 
                   marginBottom: '10px', 
+                  overflow: 'hidden',
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
                   color: '#9ca3af',
                   fontSize: '12px'
                 }}>
-                  Product Image
+                  {product.image_url ? (
+                    <img 
+                      src={product.image_url} 
+                      alt={product["Items Name"]} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    'Product Image'
+                  )}
                 </div>
+
                 <h4 style={{ color: '#fff', fontSize: '14px', margin: '0 0 5px 0', fontWeight: 'bold' }}>
                   {product["Items Name"]}
                 </h4>
@@ -698,6 +686,10 @@ export default function CheckoutScreen() {
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Stock Quantity</label>
                   <input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="0" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
                 </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Image URL</label>
+                  <input type="text" value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
                   <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
                   <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save Product</button>
@@ -728,6 +720,10 @@ export default function CheckoutScreen() {
                 <div>
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Stock Quantity</label>
                   <input type="number" value={editStock} onChange={e => setEditStock(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Image URL</label>
+                  <input type="text" value={editImageUrl} onChange={e => setEditImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
                   <button type="button" onClick={() => setEditingProduct(null)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
