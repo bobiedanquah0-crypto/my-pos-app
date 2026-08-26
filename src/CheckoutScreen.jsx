@@ -41,7 +41,16 @@ export default function CheckoutScreen() {
   const [newStock, setNewStock] = useState('');
 
   // Fetch accounts from Supabase
+  // Fetch accounts from Supabase with a guaranteed fallback Admin
   const fetchAccounts = async () => {
+    const defaultAdmin = { 
+      id: 'default-admin', 
+      fullName: 'Administrator', 
+      role: 'admin', 
+      pin: '1234', 
+      client_id: clientId 
+    };
+
     try {
       const { data, error } = await supabase
         .from('Users')
@@ -49,19 +58,19 @@ export default function CheckoutScreen() {
         .eq('client_id', clientId);
 
       if (error) throw error;
+
+      // Check if an admin already exists in Supabase data
+      const hasAdmin = data && data.some(acc => acc.role === 'admin');
+
       if (data && data.length > 0) {
-        setAccounts(data);
+        // If Supabase has users, but no admin account is among them, prepend the default admin
+        setAccounts(hasAdmin ? data : [defaultAdmin, ...data]);
       } else {
-        // Fallback default admin if table is empty
-        setAccounts([
-          { id: 'default-admin', fullName: 'Administrator', role: 'admin', pin: '1234', client_id: clientId }
-        ]);
+        setAccounts([defaultAdmin]);
       }
     } catch (err) {
       console.error("Error fetching accounts:", err);
-      setAccounts([
-        { id: 'default-admin', fullName: 'Administrator', role: 'admin', pin: '1234', client_id: clientId }
-      ]);
+      setAccounts([defaultAdmin]);
     }
   };
 
