@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import bgImage from './images/lina.jpg'; // Change 'your-image-name.jpg' to your actual file nameimage is saved
-
+import bgImage from './lina.jpg';
 const SUPABASE_URL = 'https://hihphgfrfvpmytasnmvd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
