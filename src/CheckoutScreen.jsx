@@ -19,7 +19,6 @@ export default function CheckoutScreen() {
   const [loginPin, setLoginPin] = useState('');
   const [selectedAccountForLogin, setSelectedAccountForLogin] = useState(null);
 
-  // New account form state (for Admin UI creation)
   const [newAccountName, setNewAccountName] = useState('');
   const [newAccountRole, setNewAccountRole] = useState('cashier');
   const [newAccountPin, setNewAccountPin] = useState('');
@@ -40,9 +39,7 @@ export default function CheckoutScreen() {
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
 
-  // Fetch accounts from Supabase
-  // Fetch accounts from Supabase with a guaranteed fallback Admin
- // Fetch accounts from Supabase and always force-prepend the Administrator
+  // Fetch accounts from Supabase and force-prepend Administrator
   const fetchAccounts = async () => {
     const defaultAdmin = { 
       id: 'default-admin', 
@@ -60,7 +57,6 @@ export default function CheckoutScreen() {
 
       if (error) throw error;
 
-      // Keep any other accounts (like Bobby) and make sure Administrator is always first
       const otherAccounts = data ? data.filter(acc => acc.role !== 'admin' && acc.fullName.toLowerCase() !== 'administrator') : [];
       setAccounts([defaultAdmin, ...otherAccounts]);
 
@@ -69,6 +65,7 @@ export default function CheckoutScreen() {
       setAccounts([defaultAdmin]);
     }
   };
+
   const fetchInventory = async (isBackground = false) => {
     if (!clientId) return;
     if (isBackground && isSyncingRef.current) return;
@@ -133,6 +130,7 @@ export default function CheckoutScreen() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('pos_current_user');
+    setIsSidebarOpen(false);
   };
 
   const handleCreateAccount = async (e) => {
@@ -163,7 +161,6 @@ export default function CheckoutScreen() {
     }
   };
 
-  // If no user is logged in, show UI Account Selector & Login
   if (!currentUser) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111827', color: '#fff', fontFamily: 'sans-serif', padding: '20px' }}>
@@ -372,7 +369,7 @@ export default function CheckoutScreen() {
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
         
-        {/* Top Bar with User Info & Quick Switch Button */}
+        {/* Top Bar (Cleaned up for phone view - holds Menu and Cart) */}
         <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button 
@@ -381,20 +378,9 @@ export default function CheckoutScreen() {
             >
               ☰ Menu
             </button>
-            <span style={{ color: '#34d399', fontSize: '13px', fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.6)', padding: '6px 10px', borderRadius: '6px' }}>
-              👤 {currentUser.fullName} ({currentUser.role})
-            </span>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {/* Quick Switch Account Button - Always visible at the top */}
-            <button 
-              onClick={handleLogout}
-              style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)', color: '#ffffff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-            >
-              ⇄ Switch Account
-            </button>
-
             <div style={{ position: 'relative' }}>
               <button 
                 onClick={() => setShowCartDrawer(!showCartDrawer)}
@@ -449,13 +435,28 @@ export default function CheckoutScreen() {
           </div>
         </div>
 
-        {/* Sidebar Menu */}
+        {/* Sidebar Menu (Now includes Active Profile & Switch Account Button at top) */}
         {isSidebarOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '280px', height: '100%', backgroundColor: 'rgba(17, 24, 39, 0.96)', zIndex: 1100, padding: '25px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ color: '#ffffff', margin: 0, fontSize: '18px' }}>LINAURA SCENTS</h3>
               <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffff', fontSize: '22px', cursor: 'pointer' }}>&times;</button>
             </div>
+
+            {/* Active User Profile Info inside Sidebar */}
+            <div style={{ backgroundColor: 'rgba(255,255,255,0.07)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '2px' }}>Logged in as:</div>
+              <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>👤 {currentUser.fullName}</div>
+              <div style={{ fontSize: '12px', color: '#d1d5db', textTransform: 'uppercase', marginTop: '2px' }}>Role: {currentUser.role}</div>
+            </div>
+
+            {/* Switch Account Button inside Sidebar */}
+            <button onClick={handleLogout} style={{ backgroundColor: 'rgba(239, 68, 68, 0.85)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>
+              ⇄ Switch Account / Logout
+            </button>
+
+            <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.15)', margin: '5px 0' }} />
+
             <button onClick={() => { fetchInventory(false); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>🔄 Refresh Inventory</button>
             
             {/* Admin Exclusive Tools */}
@@ -466,8 +467,6 @@ export default function CheckoutScreen() {
                 <button onClick={() => { setShowManageUsers(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(147, 51, 234, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>👥 Manage Users / Accounts</button>
               </>
             )}
-
-            <button onClick={handleLogout} style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer', marginTop: 'auto' }}>🚪 Switch Account / Logout</button>
           </div>
         )}
 
