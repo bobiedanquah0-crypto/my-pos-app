@@ -375,24 +375,26 @@ export default function CheckoutScreen() {
     if (!editingProduct || !editName || !editPrice) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('Inventory')
         .update({
           "Items Name": editName.trim(),
           Price: parseFloat(editPrice),
           Stock: parseInt(editStock) || 0
         })
-        .eq('id', editingProduct.id)
-        .eq('client_id', clientId);
+        .eq('id', editingProduct.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase update error details:", error);
+        throw error;
+      }
 
       alert("Product updated successfully!");
       setEditingProduct(null);
       fetchInventory(false);
     } catch (error) {
       console.error("Error updating product:", error);
-      alert("Failed to update product.");
+      alert(`Failed to update product: ${error.message || error.details || 'Unknown error'}`);
     }
   };
 
@@ -719,13 +721,13 @@ function ProductCard({ product, currentUser, onAddToCart, onStartEdit, onDelete 
               onClick={(e) => onStartEdit(product, e)} 
               style={{ flex: 1, backgroundColor: 'transparent', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              ✏️ 
+              ✏️ Edit
             </button>
             <button 
               onClick={(e) => onDelete(product.id, product["Items Name"], e)} 
               style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              &times; 
+              &times; Delete
             </button>
           </div>
         )}
