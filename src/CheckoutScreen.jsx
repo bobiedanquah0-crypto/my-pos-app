@@ -5,10 +5,11 @@ export default function CheckoutScreen({ products = [], onEditProduct, onDeleteP
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  // Safe filter that prevents crashes if products is undefined
-  const filteredProducts = Array.isArray(products) ? products.filter(p =>
-    String(p["Items Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ) : [];
+  // Flexible filter supporting multiple possible keys for product names
+  const filteredProducts = Array.isArray(products) ? products.filter(p => {
+    const itemName = p["Items Name"] || p.Name || p.title || p.name || '';
+    return String(itemName).toLowerCase().includes(searchQuery.toLowerCase());
+  }) : [];
 
   return (
     <div style={{
@@ -59,6 +60,10 @@ export default function CheckoutScreen({ products = [], onEditProduct, onDeleteP
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product, index) => {
               const isHovered = hoveredIndex === index;
+              const productName = product["Items Name"] || product.Name || product.title || product.name || 'Unnamed Product';
+              const productPrice = product.Price || product.price || '0.00';
+              const productStock = product.Stock !== undefined ? product.Stock : (product.stock || '0');
+              const productImage = product.image || product.img || product.imageUrl;
 
               return (
                 <div 
@@ -90,10 +95,10 @@ export default function CheckoutScreen({ products = [], onEditProduct, onDeleteP
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     overflow: 'hidden'
                   }}>
-                    {product.image ? (
+                    {productImage ? (
                       <img 
-                        src={product.image} 
-                        alt={product["Items Name"]} 
+                        src={productImage} 
+                        alt={productName} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
                     ) : (
@@ -103,13 +108,13 @@ export default function CheckoutScreen({ products = [], onEditProduct, onDeleteP
 
                   {/* Product Details */}
                   <h3 style={{ color: '#fff', fontSize: '16px', margin: '5px 0 0 0' }}>
-                    {product["Items Name"]}
+                    {productName}
                   </h3>
                   <div style={{ color: '#C50337', fontWeight: 'bold', fontSize: '15px' }}>
-                    GHC {product.Price}
+                    GHC {productPrice}
                   </div>
                   <div style={{ color: '#aaa', fontSize: '13px' }}>
-                    Stock: {product.Stock}
+                    Stock: {productStock}
                   </div>
 
                   {/* Add to Cart Button */}
@@ -153,7 +158,7 @@ export default function CheckoutScreen({ products = [], onEditProduct, onDeleteP
                         Edit
                       </button>
                       <button 
-                        onClick={() => onDeleteProduct && onDeleteProduct(product["Items Name"])}
+                        onClick={() => onDeleteProduct && onDeleteProduct(productName)}
                         style={{
                           flex: 1,
                           background: '#7f1d1d',
