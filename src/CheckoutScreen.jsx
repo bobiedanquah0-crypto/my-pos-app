@@ -59,7 +59,6 @@ export default function CheckoutScreen() {
       }
     } catch (err) {
       console.error("Error fetching accounts:", err);
-      // Fallback default admin if table doesn't exist yet
       setAccounts([
         { id: 'default-admin', fullName: 'Administrator', role: 'admin', pin: '1234', client_id: clientId }
       ]);
@@ -116,7 +115,6 @@ export default function CheckoutScreen() {
       return;
     }
 
-    // If a PIN is set for the account, verify it
     if (selectedAccountForLogin.pin && selectedAccountForLogin.pin !== loginPin) {
       alert("Incorrect PIN code!");
       return;
@@ -210,7 +208,6 @@ export default function CheckoutScreen() {
     );
   }
 
-  // Cart and sale functions
   const addToCart = (product) => {
     const itemName = product["Items Name"];
     const itemPrice = Number(product.Price || 0);
@@ -371,7 +368,7 @@ export default function CheckoutScreen() {
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
         
-        {/* Top Bar */}
+        {/* Top Bar with User Info & Quick Switch Button */}
         <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button 
@@ -385,56 +382,66 @@ export default function CheckoutScreen() {
             </span>
           </div>
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {/* Quick Switch Account Button - Always visible at the top */}
             <button 
-              onClick={() => setShowCartDrawer(!showCartDrawer)}
-              style={{ backgroundColor: 'transparent', color: '#ffffff', border: '2px solid rgba(255, 255, 255, 0.6)', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+              onClick={handleLogout}
+              style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)', color: '#ffffff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
             >
-              🛒 Cart ({totalCartItemsCount})
+              ⇄ Switch Account
             </button>
 
-            {showCartDrawer && (
-              <div style={{ 
-                position: 'absolute', top: '45px', right: '0', width: '300px', maxWidth: '85vw',
-                backgroundColor: 'rgba(17, 24, 39, 0.96)', backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', 
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 1050, padding: '16px', boxSizing: 'border-box',
-                display: 'flex', flexDirection: 'column', gap: '12px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '8px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0', color: '#ffffff' }}>Cart Items</h4>
-                  <button onClick={() => setShowCartDrawer(false)} style={{ background: 'none', border: 'none', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#9ca3af' }}>&times;</button>
-                </div>
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={() => setShowCartDrawer(!showCartDrawer)}
+                style={{ backgroundColor: 'transparent', color: '#ffffff', border: '2px solid rgba(255, 255, 255, 0.6)', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+              >
+                🛒 Cart ({totalCartItemsCount})
+              </button>
 
-                {cart.length === 0 ? (
-                  <p style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', margin: '10px 0' }}>Your cart is empty.</p>
-                ) : (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {cart.map((item, index) => (
-                      <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#f3f4f6', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, paddingRight: '8px' }}>
-                          <span style={{ fontWeight: '500' }}>{item.name}</span>
-                          <span style={{ color: '#34d399', fontSize: '12px' }}>GHC {(item.price * item.qty).toFixed(2)} (x{item.qty})</span>
-                        </div>
-                        <button onClick={() => removeFromCart(item.id)} style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {cart.length > 0 && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', color: '#ffffff' }}>
-                      <span>Total:</span>
-                      <span style={{ color: '#34d399' }}>GHC {totalAmount.toFixed(2)}</span>
-                    </div>
-                    <button onClick={completeSale} style={{ backgroundColor: '#059669', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
-                      Complete Sale & Print
-                    </button>
+              {showCartDrawer && (
+                <div style={{ 
+                  position: 'absolute', top: '45px', right: '0', width: '300px', maxWidth: '85vw',
+                  backgroundColor: 'rgba(17, 24, 39, 0.96)', backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', 
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 1050, padding: '16px', boxSizing: 'border-box',
+                  display: 'flex', flexDirection: 'column', gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '8px' }}>
+                    <h4 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0', color: '#ffffff' }}>Cart Items</h4>
+                    <button onClick={() => setShowCartDrawer(false)} style={{ background: 'none', border: 'none', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#9ca3af' }}>&times;</button>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {cart.length === 0 ? (
+                    <p style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', margin: '10px 0' }}>Your cart is empty.</p>
+                  ) : (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {cart.map((item, index) => (
+                        <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#f3f4f6', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, paddingRight: '8px' }}>
+                            <span style={{ fontWeight: '500' }}>{item.name}</span>
+                            <span style={{ color: '#34d399', fontSize: '12px' }}>GHC {(item.price * item.qty).toFixed(2)} (x{item.qty})</span>
+                          </div>
+                          <button onClick={() => removeFromCart(item.id)} style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {cart.length > 0 && (
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', color: '#ffffff' }}>
+                        <span>Total:</span>
+                        <span style={{ color: '#34d399' }}>GHC {totalAmount.toFixed(2)}</span>
+                      </div>
+                      <button onClick={completeSale} style={{ backgroundColor: '#059669', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
+                        Complete Sale & Print
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -552,7 +559,7 @@ export default function CheckoutScreen() {
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ flex: '1', backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
               </div>
             </form>
           </div>
