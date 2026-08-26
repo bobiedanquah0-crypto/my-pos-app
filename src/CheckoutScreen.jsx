@@ -42,6 +42,7 @@ export default function CheckoutScreen() {
 
   // Fetch accounts from Supabase
   // Fetch accounts from Supabase with a guaranteed fallback Admin
+ // Fetch accounts from Supabase and always force-prepend the Administrator
   const fetchAccounts = async () => {
     const defaultAdmin = { 
       id: 'default-admin', 
@@ -59,21 +60,15 @@ export default function CheckoutScreen() {
 
       if (error) throw error;
 
-      // Check if an admin already exists in Supabase data
-      const hasAdmin = data && data.some(acc => acc.role === 'admin');
+      // Keep any other accounts (like Bobby) and make sure Administrator is always first
+      const otherAccounts = data ? data.filter(acc => acc.role !== 'admin' && acc.fullName.toLowerCase() !== 'administrator') : [];
+      setAccounts([defaultAdmin, ...otherAccounts]);
 
-      if (data && data.length > 0) {
-        // If Supabase has users, but no admin account is among them, prepend the default admin
-        setAccounts(hasAdmin ? data : [defaultAdmin, ...data]);
-      } else {
-        setAccounts([defaultAdmin]);
-      }
     } catch (err) {
       console.error("Error fetching accounts:", err);
       setAccounts([defaultAdmin]);
     }
   };
-
   const fetchInventory = async (isBackground = false) => {
     if (!clientId) return;
     if (isBackground && isSyncingRef.current) return;
