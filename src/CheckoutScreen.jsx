@@ -61,8 +61,8 @@ export default function CheckoutScreen() {
       const { data, error } = await supabase
         .from('Sales')
         .select('*')
-        .ilike('client_id', clientId) // case-insensitive match
-        .order('id', { ascending: false });
+        .ilike('client_id', clientId)
+        .order('Timestamp', { ascending: false }); // Sorted by Timestamp instead of id
 
       if (error) throw error;
       console.log("Sales history fetched successfully:", data);
