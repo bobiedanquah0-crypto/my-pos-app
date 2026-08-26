@@ -61,10 +61,14 @@ export default function CheckoutScreen() {
   }, [clientId]);
 
   const addToCart = (product) => {
+    const itemName = product["Item Name"];
+    const itemPrice = Number(product.Price || 0);
+    const itemStock = Number(product.Stock || 0);
+
     const cartItem = cart.find(item => item.id === product.id);
     const currentQtyInCart = cartItem ? cartItem.qty : 0;
 
-    if (product.stock - currentQtyInCart <= 0) {
+    if (itemStock - currentQtyInCart <= 0) {
       alert('Sorry, this item is out of stock!');
       return;
     }
@@ -72,7 +76,7 @@ export default function CheckoutScreen() {
     if (cartItem) {
       setCart(cart.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
     } else {
-      setCart([...cart, { ...product, qty: 1 }]);
+      setCart([...cart, { ...product, name: itemName, price: itemPrice, stock: itemStock, qty: 1 }]);
     }
   };
 
@@ -155,7 +159,7 @@ export default function CheckoutScreen() {
     const updatedProducts = products.map(prod => {
       const cartMatch = cart.find(item => item.id === prod.id);
       if (cartMatch) {
-        return { ...prod, stock: Math.max(0, Number(prod.stock) - Number(cartMatch.qty)) };
+        return { ...prod, Stock: Math.max(0, Number(prod.Stock || 0) - Number(cartMatch.qty)) };
       }
       return prod;
     });
@@ -192,7 +196,7 @@ export default function CheckoutScreen() {
         if (matchingProduct) {
           await supabase
             .from('Inventory')
-            .update({ stock: matchingProduct.stock })
+            .update({ Stock: matchingProduct.Stock })
             .eq('id', item.id)
             .eq('client_id', clientId);
         }
@@ -211,12 +215,12 @@ export default function CheckoutScreen() {
       return;
     }
 
-    // Payload matches exact table columns: client_id, name, price, stock
+    // Mapping payload keys to match exact Supabase column headers: "Iteam Name", Price, Stock
     const productPayload = {
       client_id: clientId,
-      name: newName.trim(),
-      price: parseFloat(newPrice),
-      stock: parseInt(newStock) || 0
+      "Item Name": newName.trim(),
+      Price: parseFloat(newPrice),
+      Stock: parseInt(newStock) || 0
     };
 
     try {
@@ -239,7 +243,7 @@ export default function CheckoutScreen() {
   };
 
   const filteredProducts = products.filter(p => 
-    String(p.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+    String(p["Item Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -374,12 +378,12 @@ export default function CheckoutScreen() {
                   }}
                 >
                   <div>
-                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product.name}</h4>
+                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Iteam Name"]}</h4>
                   </div>
                   <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
-                      <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>GHC {Number(product.price).toFixed(2)}</div>
-                      <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.stock}</div>
+                      <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>GHC {Number(product.Price || 0).toFixed(2)}</div>
+                      <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.Stock ?? 0}</div>
                     </div>
                   </div>
                 </div>
