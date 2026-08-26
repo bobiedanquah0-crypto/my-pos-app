@@ -282,14 +282,14 @@ export default function CheckoutScreen() {
     const newSaleRecord = {
       client_id: clientId,
       Timestamp: currentDate.toLocaleString(),
-      Cashier: currentUser.fullName,
+      Cashier: currentUser ? currentUser.fullName : 'Administrator',
       "Total Amount (GHC)": totalAmount,
       "Items Summary": itemsSummaryString
     };
     
     const activeCart = [...cart];
     const currentTotal = totalAmount;
-    const cashierName = currentUser.fullName;
+    const cashierName = currentUser ? currentUser.fullName : 'Administrator';
 
     setCart([]);
     setShowCartDrawer(false);
@@ -320,7 +320,6 @@ export default function CheckoutScreen() {
 
     let uploadedImageUrl = '';
 
-    // Upload image file directly to the 'image' Supabase storage bucket
     if (newImageFile) {
       const fileName = `${Date.now()}_${newImageFile.name.replace(/\s+/g, '_')}`;
       const { error: uploadError } = await supabase.storage
@@ -384,7 +383,6 @@ export default function CheckoutScreen() {
 
     let uploadedImageUrl = existingImageUrl;
 
-    // Upload new image file if a new file was selected during edit
     if (editImageFile) {
       const fileName = `${Date.now()}_${editImageFile.name.replace(/\s+/g, '_')}`;
       const { error: uploadError } = await supabase.storage
@@ -733,11 +731,50 @@ export default function CheckoutScreen() {
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Product Image File</label>
                   <input type="file" accept="image/*" onChange={e => setNewImageFile(e.target.files[0])} style={{ width: '100%', color: '#fff', fontSize: '12px' }} />
                 </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                  <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save Product</button>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#4b5563', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save Product</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sales Report Modal (Admin Only) */}
+        {showSalesModal && currentUser.role === 'admin' && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '750px', maxHeight: '85vh', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Sales Report History</h3>
+                <button onClick={() => setShowSalesModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '22px', cursor: 'pointer' }}>&times;</button>
+              </div>
+
+              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {salesHistory.length === 0 ? (
+                  <p style={{ color: '#9ca3af', textAlign: 'center', padding: '20px' }}>No sales records found.</p>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', color: '#f3f4f6', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)', textAlign: 'left', color: '#9ca3af' }}>
+                        <th style={{ padding: '8px' }}>Date</th>
+                        <th style={{ padding: '8px' }}>Cashier</th>
+                        <th style={{ padding: '8px' }}>Items Summary</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Total (GHC)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesHistory.map((sale, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                          <td style={{ padding: '8px', color: '#d1d5db', whiteSpace: 'nowrap' }}>{sale.Timestamp}</td>
+                          <td style={{ padding: '8px', color: '#34d399', fontWeight: 'bold' }}>{sale.Cashier}</td>
+                          <td style={{ padding: '8px' }}>{sale["Items Summary"]}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -768,44 +805,11 @@ export default function CheckoutScreen() {
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Replace Image File (Optional)</label>
                   <input type="file" accept="image/*" onChange={e => setEditImageFile(e.target.files[0])} style={{ width: '100%', color: '#fff', fontSize: '12px' }} />
                 </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                  <button type="button" onClick={() => setEditingProduct(null)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Update Product</button>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setEditingProduct(null)} style={{ flex: 1, padding: '10px', backgroundColor: '#4b5563', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Update</button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Sales Report Modal */}
-        {showSalesModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
-            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '650px', maxHeight: '85vh', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <h3 style={{ color: '#ffffff', margin: 0 }}>Sales Report History</h3>
-                <button onClick={() => setShowSalesModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
-              </div>
-
-              <div style={{ overflowY: 'auto', maxHeight: '60vh', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {salesHistory.length === 0 ? (
-                  <p style={{ color: '#9ca3af', textAlign: 'center', padding: '20px' }}>No sales records found.</p>
-                ) : (
-                  salesHistory.map((sale, idx) => (
-                    <div key={idx} style={{ backgroundColor: 'rgba(31, 41, 55, 0.7)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                        <span style={{ color: '#34d399', fontWeight: 'bold' }}>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
-                        <span style={{ color: '#9ca3af', fontSize: '12px' }}>{sale.Timestamp}</span>
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#f3f4f6' }}>
-                        <strong>Items:</strong> {sale["Items Summary"]}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                        Cashier: {sale.Cashier}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
           </div>
         )}
