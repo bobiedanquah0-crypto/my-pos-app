@@ -364,7 +364,12 @@ export default function CheckoutScreen() {
 
   const startEditProduct = (product, e) => {
     e.stopPropagation();
-    setEditingProduct(product);
+    const productId = product.id || product.product_id || product._id;
+    
+    console.log("Selected product to edit:", product);
+    console.log("Extracted product ID:", productId);
+
+    setEditingProduct({ ...product, resolvedId: productId });
     setEditName(product["Items Name"] || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
@@ -372,7 +377,12 @@ export default function CheckoutScreen() {
 
   const handleEditProductSubmit = async (e) => {
     e.preventDefault();
-    if (!editingProduct || !editName || !editPrice) return;
+    const targetId = editingProduct?.resolvedId || editingProduct?.id;
+
+    if (!editingProduct || !targetId || !editName || !editPrice) {
+      alert("Error: Product ID is missing. Cannot update.");
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -382,13 +392,15 @@ export default function CheckoutScreen() {
           Price: parseFloat(editPrice),
           Stock: parseInt(editStock) || 0
         })
-        .eq('id', editingProduct.id);
+        .eq('id', targetId)
+        .select();
 
       if (error) {
         console.error("Supabase update error details:", error);
         throw error;
       }
 
+      console.log("Update successful, returned data:", data);
       alert("Product updated successfully!");
       setEditingProduct(null);
       fetchInventory(false);
@@ -671,7 +683,7 @@ export default function CheckoutScreen() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
               {filteredProducts.map((product) => (
                 <ProductCard 
-                  key={product.id}
+                  key={product.id || product.product_id}
                   product={product}
                   currentUser={currentUser}
                   onAddToCart={addToCart}
@@ -724,7 +736,7 @@ function ProductCard({ product, currentUser, onAddToCart, onStartEdit, onDelete 
               ✏️ Edit
             </button>
             <button 
-              onClick={(e) => onDelete(product.id, product["Items Name"], e)} 
+              onClick={(e) => onDelete(product.id || product.product_id, product["Items Name"], e)} 
               style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
             >
               &times; Delete
