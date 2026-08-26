@@ -29,18 +29,19 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // Add Product Form State (Includes Image Field)
+  // Add Product Form State (Includes Image File State)
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
-  const [newImageUrl, setNewImageUrl] = useState('');
+  const [newImageFile, setNewImageFile] = useState(null);
 
-  // Edit Product State (Includes Image Field)
+  // Edit Product State (Includes Image File State)
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
-  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [existingImageUrl, setExistingImageUrl] = useState('');
 
   const isSyncingRef = useRef(false);
 
@@ -317,19 +318,40 @@ export default function CheckoutScreen() {
     e.preventDefault();
     if (!newName || !newPrice) return;
 
+    let uploadedImageUrl = '';
+
+    // Upload image file directly to Supabase storage if selected
+    if (newImageFile) {
+      const fileName = `${Date.now()}_${newImageFile.name.replace(/\s+/g, '_')}`;
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, newImageFile);
+
+      if (uploadError) {
+        alert("Error uploading image: " + uploadError.message);
+        return;
+      }
+
+      const { data: publicURLData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      uploadedImageUrl = publicURLData.publicUrl;
+    }
+
     const productPayload = {
       client_id: clientId,
       "Items Name": newName.trim(),
       Price: parseFloat(newPrice),
       Stock: parseInt(newStock) || 0,
-      image: newImageUrl.trim() // Changed key to match your 'Image' column
+      image: uploadedImageUrl
     };
 
     try {
       const { error } = await supabase.from('Inventory').insert([productPayload]);
       if (error) throw error;
       alert("Product successfully added!");
-      setNewName(''); setNewPrice(''); setNewStock(''); setNewImageUrl('');
+      setNewName(''); setNewPrice(''); setNewStock(''); setNewImageFile(null);
       setShowAddProduct(false);
       fetchInventory(false);
     } catch (error) {
@@ -341,12 +363,14 @@ export default function CheckoutScreen() {
   const startEditProduct = (product, e) => {
     e.stopPropagation();
     const identifier = product["Items Name"];
+    const currentImg = product.Image || product.image || '';
 
     setEditingProduct({ ...product, resolvedId: identifier });
     setEditName(identifier || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
-    setEditImageUrl(product.Image || product.image || ''); 
+    setExistingImageUrl(currentImg);
+    setEditImageFile(null);
   };
 
   const handleEditProductSubmit = async (e) => {
@@ -358,6 +382,27 @@ export default function CheckoutScreen() {
       return;
     }
 
+    let uploadedImageUrl = existingImageUrl;
+
+    // Upload new image file if a new one was picked during edit
+    if (editImageFile) {
+      const fileName = `${Date.now()}_${editImageFile.name.replace(/\s+/g, '_')}`;
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, editImageFile);
+
+      if (uploadError) {
+        alert("Error uploading image: " + uploadError.message);
+        return;
+      }
+
+      const { data: publicURLData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      uploadedImageUrl = publicURLData.publicUrl;
+    }
+
     try {
       const { error } = await supabase
         .from('Inventory')
@@ -365,7 +410,7 @@ export default function CheckoutScreen() {
           "Items Name": editName.trim(),
           Price: parseFloat(editPrice),
           Stock: parseInt(editStock) || 0,
-          image: editImageUrl.trim()
+          image: uploadedImageUrl
         })
         .eq('Items Name', targetName)
         .eq('client_id', clientId);
@@ -685,8 +730,8 @@ export default function CheckoutScreen() {
                   <input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="0" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Image URL</label>
-                  <input type="text" value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Product Image File</label>
+                  <input type="file" accept="image/*" onChange={e => setNewImageFile(e.target.files[0])} style={{ width: '100%', color: '#fff', fontSize: '12px' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
                   <button type="button" onClick={() => setShowAddProduct(false)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
@@ -720,8 +765,8 @@ export default function CheckoutScreen() {
                   <input type="number" value={editStock} onChange={e => setEditStock(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Image URL</label>
-                  <input type="text" value={editImageUrl} onChange={e => setEditImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Replace Image File (Optional)</label>
+                  <input type="file" accept="image/*" onChange={e => setEditImageFile(e.target.files[0])} style={{ width: '100%', color: '#fff', fontSize: '12px' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
                   <button type="button" onClick={() => setEditingProduct(null)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
