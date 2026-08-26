@@ -704,13 +704,13 @@ export default function CheckoutScreen() {
                           onClick={(e) => startEditProduct(product, e)} 
                           style={{ flex: 1, backgroundColor: 'rgba(37, 99, 235, 0.9)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
-                          ✏️ Edit
+                          ✏️ 
                         </button>
                         <button 
                           onClick={(e) => handleDeleteProduct(product.id, product["Items Name"], e)} 
                           style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
-                          🗑️ Delete
+                          🗑️ 
                         </button>
                       </div>
                     )}
