@@ -18,8 +18,11 @@ export default function CheckoutScreen() {
 
   const [cart, setCart] = useState([]);
   const [sales, setSales] = useState([]);
+  const [salesHistory, setSalesHistory] = useState([]);
+  
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [showSalesModal, setShowSalesModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +52,21 @@ export default function CheckoutScreen() {
       }
     } catch (error) {
       console.error("Failed to fetch live inventory from Supabase:", error);
+    }
+  };
+
+  const fetchSalesHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Sales')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+      if (data) setSalesHistory(data);
+    } catch (error) {
+      console.error("Error fetching sales history:", error);
     }
   };
 
@@ -325,6 +343,35 @@ export default function CheckoutScreen() {
             </div>
             <button onClick={() => { fetchInventory(false); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>🔄 Refresh Inventory</button>
             <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
+            <button onClick={() => { fetchSalesHistory(); setShowSalesModal(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(234, 179, 8, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>📊 View Sales Report</button>
+          </div>
+        )}
+
+        {/* Sales History Report Modal */}
+        {showSalesModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '20px', gap: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Cashier Sales History</h3>
+                <button onClick={() => setShowSalesModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+              </div>
+              <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                {salesHistory.length === 0 ? (
+                  <p style={{ color: '#9ca3af', textAlign: 'center' }}>No sales records found.</p>
+                ) : (
+                  salesHistory.map((sale, idx) => (
+                    <div key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', color: '#f3f4f6' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <span style={{ color: '#34d399' }}>Cashier: {sale.cashier}</span>
+                        <span>GHC {Number(sale.total_amount || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={{ color: '#9ca3af', fontSize: '12px' }}>Time: {sale.timestamp}</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>Items: {sale.items}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
 
