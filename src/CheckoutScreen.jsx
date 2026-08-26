@@ -27,8 +27,8 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // State to track which product card is currently being hovered
-  const [hoveredProductId, setHoveredProductId] = useState(null);
+  // State to track active product card for mobile toggle / desktop hover
+  const [activeProductId, setActiveProductId] = useState(null);
 
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
@@ -88,12 +88,16 @@ export default function CheckoutScreen() {
     }
 
     let fullName = 'Lead Cashier';
-    let role = 'cashier';
+    let role = 'admin';
     if (loginIdentifier === 'admin') {
       fullName = 'Administrator';
       role = 'admin';
     } else if (loginIdentifier === 'cashier2') {
       fullName = 'Floor Cashier';
+      role = 'cashier';
+    } else {
+      fullName = 'Lead Cashier';
+      role = 'cashier';
     }
 
     const userObj = { username: loginIdentifier, fullName, role };
@@ -144,6 +148,78 @@ export default function CheckoutScreen() {
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const totalCartItemsCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
+  // Terminal Receipt Print Generator Function
+  const handlePrintReceipt = (completedCart, total, cashierName) => {
+    const receiptWindow = window.open('', '_blank', 'width=300,height=600');
+    
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Customer Receipt</title>
+          <style>
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 12px;
+              width: 58mm;
+              margin: 0;
+              padding: 10px;
+              color: #000;
+            }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .line { border-bottom: 1px dashed #000; margin: 8px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { text-align: left; font-size: 11px; padding: 2px 0; }
+            .right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <div class="center bold" style="font-size: 14px;">POS TERMINAL RECEIPT</div>
+          <div class="center">Tema, Ghana</div>
+          <div class="line"></div>
+          <div>Date: ${new Date().toLocaleString()}</div>
+          <div>Cashier: ${cashierName}</div>
+          <div class="line"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="center">Qty</th>
+                <th class="right">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${completedCart.map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  <td class="center">${item.qty}</td>
+                  <td class="right">${(item.price * item.qty).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="line"></div>
+          <div class="bold" style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span>TOTAL:</span>
+            <span>GHC ${total.toFixed(2)}</span>
+          </div>
+          <div class="line"></div>
+          <div class="center" style="margin-top: 10px;">Thank you for your patronage!</div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    receiptWindow.document.write(receiptHTML);
+    receiptWindow.document.close();
+  };
+
   const completeSale = () => {
     if (cart.length === 0) {
       alert('Cart is empty!');
@@ -176,10 +252,16 @@ export default function CheckoutScreen() {
     setSales([newSale, ...sales]);
     
     const activeCart = [...cart];
+    const currentTotal = totalAmount;
+    const cashierName = currentUser?.fullName || 'Unknown';
+
     setCart([]);
     setShowCartDrawer(false);
 
-    alert(`Sale of GHC ${totalAmount.toFixed(2)} Completed Successfully!`);
+    // Automatically trigger thermal receipt print layout
+    handlePrintReceipt(activeCart, currentTotal, cashierName);
+
+    alert(`Sale of GHC ${currentTotal.toFixed(2)} Completed Successfully!`);
 
     setTimeout(async () => {
       try {
@@ -526,7 +608,7 @@ export default function CheckoutScreen() {
                         onClick={completeSale} 
                         style={{ backgroundColor: '#059669', color: 'white', padding: '10px 8px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', flex: 2, boxShadow: '0 2px 8px rgba(5, 150, 105, 0.4)' }}
                       >
-                        Complete Sale
+                        Complete Sale & Print
                       </button>
                     </div>
                   </div>
@@ -698,10 +780,17 @@ export default function CheckoutScreen() {
               {filteredProducts.map(p => (
                 <div 
                   key={p.id} 
-                  onMouseEnter={() => setHoveredProductId(p.id)}
-                  onMouseLeave={() => setHoveredProductId(null)}
+                  onMouseEnter={() => setActiveProductId(p.id)}
+                  onMouseLeave={() => setActiveProductId(null)}
+                  onClick={() => {
+                    if (currentUser.role === 'admin') {
+                      setActiveProductId(activeProductId === p.id ? null : p.id);
+                    } else {
+                      addToCart(p);
+                    }
+                  }}
                   style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
                     padding: '12px', 
                     borderRadius: '10px', 
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)', 
@@ -709,25 +798,53 @@ export default function CheckoutScreen() {
                     flexDirection: 'column', 
                     justifyContent: 'space-between', 
                     boxSizing: 'border-box',
-                    position: 'relative'
+                    position: 'relative',
+                    cursor: 'pointer',
+                    border: currentUser.role === 'admin' && activeProductId === p.id ? '2px solid #2563eb' : '2px solid transparent'
                   }}
                 >
-                  <div onClick={() => addToCart(p)} style={{ cursor: 'pointer', flex: 1 }}>
+                  {currentUser.role === 'admin' && (
+                    <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(p);
+                        }}
+                        title="Add to Cart"
+                        style={{
+                          background: '#059669',
+                          border: 'none',
+                          borderRadius: '4px',
+                          color: '#ffffff',
+                          padding: '3px 6px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Cart
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ flex: 1, paddingRight: currentUser.role === 'admin' ? '45px' : '0' }}>
                     <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#111827' }}>{p.name}</h3>
                     <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#4b5563' }}>{p.category}</p>
                     <p style={{ margin: '0', fontWeight: 'bold', color: '#059669', fontSize: '14px' }}>GHC {parseFloat(p.price || 0).toFixed(2)}</p>
                     <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
                   </div>
 
-                  {currentUser.role === 'admin' && hoveredProductId === p.id && (
+                  {currentUser.role === 'admin' && activeProductId === p.id && (
                     <div style={{ 
                       display: 'flex', 
                       gap: '8px', 
                       marginTop: '10px',
                       paddingTop: '8px',
-                      borderTop: '1px solid rgba(209, 213, 219, 0.6)',
+                      borderTop: '1px solid rgba(209, 213, 219, 0.8)',
                       animation: 'fadeIn 0.2s ease-in-out'
-                    }}>
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    >
                       <button 
                         onClick={() => handleOpenEdit(p)}
                         style={{ 
@@ -778,4 +895,4 @@ export default function CheckoutScreen() {
       </div>
     </div>
   );
-}
+} 
