@@ -16,9 +16,6 @@ export default function CheckoutScreen() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const [loginIdentifier, setLoginIdentifier] = useState('admin');
-  const [loginPin, setLoginPin] = useState('');
-  
   const [cart, setCart] = useState([]);
   const [sales, setSales] = useState([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -32,7 +29,6 @@ export default function CheckoutScreen() {
 
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
-  const [newCategory, setNewCategory] = useState('');
   const [newStock, setNewStock] = useState('');
 
   const fetchInventory = async (isBackground = false) => {
@@ -215,11 +211,11 @@ export default function CheckoutScreen() {
       return;
     }
 
+    // Payload matches exact table columns: client_id, name, price, stock
     const productPayload = {
       client_id: clientId,
       name: newName.trim(),
       price: parseFloat(newPrice),
-      category: newCategory.trim() || 'Fragrances',
       stock: parseInt(newStock) || 0
     };
 
@@ -233,7 +229,6 @@ export default function CheckoutScreen() {
       alert("Product successfully added to LINAURA SCENTS inventory!");
       setNewName('');
       setNewPrice('');
-      setNewCategory('');
       setNewStock('');
       setShowAddProduct(false);
       fetchInventory(false);
@@ -244,8 +239,7 @@ export default function CheckoutScreen() {
   };
 
   const filteredProducts = products.filter(p => 
-    String(p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-    String(p.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+    String(p.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -345,10 +339,6 @@ export default function CheckoutScreen() {
                 <input type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} required />
               </div>
               <div>
-                <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Category</label>
-                <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Fragrances" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
-              </div>
-              <div>
                 <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Stock Quantity</label>
                 <input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="10" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
               </div>
@@ -384,10 +374,7 @@ export default function CheckoutScreen() {
                   }}
                 >
                   <div>
-                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold' }}>{product.name}</h4>
-                    <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.3)', color: '#93c5fd', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>
-                      {product.category || 'General'}
-                    </span>
+                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product.name}</h4>
                   </div>
                   <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
