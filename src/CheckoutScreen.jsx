@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase Connection (Replace with your actual keys)
+const SUPABASE_URL = 'sb_publishable_4HmoIRTqgnS_HQzKgac20Q_Ez6IX3qI';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function CheckoutScreen() {
-  // 1. Dynamic Web App URL from localStorage
-  const [webAppUrl, setWebAppUrl] = useState(() => {
-    return localStorage.getItem('pos_client_web_url') || '';
+  // 1. Dynamic Client Store ID from localStorage (Defaulting to 'store_101')
+  const [clientId, setClientId] = useState(() => {
+    return localStorage.getItem('pos_client_id') || 'store_101';
   });
   
-  const [setupUrlInput, setSetupUrlInput] = useState('');
+  const [setupClientIdInput, setSetupClientIdInput] = useState('');
 
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem('pos_current_user');
@@ -44,40 +50,43 @@ export default function CheckoutScreen() {
   const [newStock, setNewStock] = useState('');
 
   const fetchInventory = async (isBackground = false) => {
-    if (!webAppUrl) return;
+    if (!clientId) return;
     if (isBackground && isSyncingRef.current) return;
 
     try {
-      const response = await fetch(webAppUrl);
-      const textData = await response.text();
-      const result = JSON.parse(textData);
-      
-      if (result.status === "success" && result.products) {
+      const { data, error } = await supabase
+        .from('Inventory')
+        .select('*')
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+      if (data) {
         if (!isBackground || !isSyncingRef.current) {
-          setProducts(result.products);
+          setProducts(data);
         }
       }
     } catch (error) {
-      console.error("Failed to fetch live inventory:", error);
+      console.error("Failed to fetch live inventory from Supabase:", error);
     }
   };
 
   useEffect(() => {
-    if (webAppUrl && currentUser) {
+    if (clientId && currentUser) {
       fetchInventory(false);
       const intervalId = setInterval(() => fetchInventory(true), 15000);
       return () => clearInterval(intervalId);
     }
-  }, [webAppUrl, currentUser]);
+  }, [clientId, currentUser]);
 
-  const handleSaveWebAppUrl = (e) => {
+  const handleSaveClientId = (e) => {
     e.preventDefault();
-    if (!setupUrlInput.trim()) {
-      alert('Please enter a valid Google Apps Script Web App URL.');
+    if (!setupClientIdInput.trim()) {
+      alert('Please enter a valid Client ID (e.g., store_101).');
       return;
     }
-    localStorage.setItem('pos_client_web_url', setupUrlInput.trim());
-    setWebAppUrl(setupUrlInput.trim());
+    const cleanId = setupClientIdInput.trim();
+    localStorage.setItem('pos_client_id', cleanId);
+    setClientId(cleanId);
   };
 
   const handleLoginSubmit = async (e) => {
@@ -118,9 +127,9 @@ export default function CheckoutScreen() {
   };
 
   const handleDisconnectClient = () => {
-    if (confirm("Disconnect this client database? You will need to enter a new Web App URL.")) {
-      localStorage.removeItem('pos_client_web_url');
-      setWebAppUrl('');
+    if (confirm("Disconnect this client database? You will need to enter a new Client ID.")) {
+      localStorage.removeItem('pos_client_id');
+      setClientId('');
       handleLogout();
     }
   };
@@ -220,7 +229,7 @@ export default function CheckoutScreen() {
     receiptWindow.document.close();
   };
 
-  const completeSale = () => {
+  const completeSale = async () => {
     if (cart.length === 0) {
       alert('Cart is empty!');
       return;
@@ -241,15 +250,15 @@ export default function CheckoutScreen() {
     const itemsSummaryString = cart.map(item => `${item.name} (Qty: ${item.qty})`).join(', ');
 
     const currentDate = new Date();
-    const newSale = {
-      action: 'addSale',
+    const newSaleRecord = {
+      client_id: clientId,
       timestamp: currentDate.toLocaleString(),
       cashier: currentUser?.fullName || 'Unknown',
-      totalAmount: totalAmount,
+      total_amount: totalAmount,
       items: itemsSummaryString
     };
 
-    setSales([newSale, ...sales]);
+    setSales([newSaleRecord, ...sales]);
     
     const activeCart = [...cart];
     const currentTotal = totalAmount;
@@ -260,46 +269,31 @@ export default function CheckoutScreen() {
 
     // Automatically trigger thermal receipt print layout
     handlePrintReceipt(activeCart, currentTotal, cashierName);
-
     alert(`Sale of GHC ${currentTotal.toFixed(2)} Completed Successfully!`);
 
-    setTimeout(async () => {
-      try {
-        await fetch(webAppUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(newSale)
-        });
+    try {
+      // 1. Insert into Supabase Sales table
+      const { error: saleError } = await supabase.from('Sales').insert([newSaleRecord]);
+      if (saleError) throw saleError;
 
-        await Promise.all(
-          activeCart.map(async (item) => {
-            const matchingProduct = updatedProducts.find(p => p.id === item.id);
-            if (matchingProduct) {
-              await fetch(webAppUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                  action: 'updateProduct',
-                  id: item.id,
-                  name: item.name,
-                  price: item.price,
-                  category: item.category,
-                  stock: matchingProduct.stock
-                })
-              });
-            }
-          })
-        );
-      } catch (error) {
-        console.error("Background sync to cloud failed:", error);
-      } finally {
-        setTimeout(() => {
-          isSyncingRef.current = false;
-        }, 4000);
+      // 2. Update stock levels in Supabase Inventory table
+      for (const item of activeCart) {
+        const matchingProduct = updatedProducts.find(p => p.id === item.id);
+        if (matchingProduct) {
+          await supabase
+            .from('Inventory')
+            .update({ stock: matchingProduct.stock })
+            .eq('id', item.id)
+            .eq('client_id', clientId);
+        }
       }
-    }, 10);
+    } catch (error) {
+      console.error("Cloud sync to Supabase failed:", error);
+    } finally {
+      setTimeout(() => {
+        isSyncingRef.current = false;
+      }, 4000);
+    }
   };
 
   const handleAddProductSubmit = async (e) => {
@@ -314,7 +308,7 @@ export default function CheckoutScreen() {
     const parsedCategory = newCategory || 'General';
 
     const productPayload = {
-      action: 'addProduct',
+      client_id: clientId,
       name: newName,
       price: parsedPrice,
       category: parsedCategory,
@@ -322,27 +316,18 @@ export default function CheckoutScreen() {
     };
 
     try {
-      const response = await fetch(webAppUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(productPayload)
-      });
-      
-      const textData = await response.text();
-      const result = JSON.parse(textData);
-      
-      if (result.status === "success") {
-        alert("Product successfully added and saved to client's Google Sheet!");
-        setNewName('');
-        setNewPrice('');
-        setNewCategory('');
-        setNewStock('');
-        setShowAddProduct(false);
-        fetchInventory(false);
-      } else {
-        alert("Failed to save to cloud: " + (result.message || "Unknown error"));
-      }
+      const { error } = await supabase.from('Inventory').insert([productPayload]);
+      if (error) throw error;
+
+      alert("Product successfully added and saved to Supabase!");
+      setNewName('');
+      setNewPrice('');
+      setNewCategory('');
+      setNewStock('');
+      setShowAddProduct(false);
+      fetchInventory(false);
     } catch (error) {
+      console.error("Error saving product to Supabase:", error);
       alert("Error saving product to cloud.");
     }
   };
@@ -363,34 +348,26 @@ export default function CheckoutScreen() {
     const parsedStock = parseInt(editStock) || 0;
 
     const updatedPayload = {
-      action: 'updateProduct',
-      id: editingProduct.id,
       name: editName,
       price: parsedPrice,
       category: editCategory,
       stock: parsedStock
     };
 
+    const targetId = editingProduct.id;
     setEditingProduct(null);
 
     try {
-      const response = await fetch(webAppUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(updatedPayload)
-      });
-      
-      const textData = await response.text();
-      const result = JSON.parse(textData);
-      
-      if (result.status === "success") {
-        fetchInventory(false);
-      } else {
-        alert("Cloud update warning: Could not fully confirm save.");
-        fetchInventory(false);
-      }
+      const { error } = await supabase
+        .from('Inventory')
+        .update(updatedPayload)
+        .eq('id', targetId)
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+      fetchInventory(false);
     } catch (error) {
-      console.error("Failed to update product in cloud:", error);
+      console.error("Failed to update product in Supabase:", error);
       alert("Error connecting to the cloud to save edits.");
       fetchInventory(false);
     }
@@ -402,24 +379,15 @@ export default function CheckoutScreen() {
     setProducts(products.filter(item => item.id !== product.id));
 
     try {
-      const response = await fetch(webAppUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'deleteProduct',
-          id: product.id,
-          name: product.name
-        })
-      });
-      
-      const textData = await response.text();
-      const result = JSON.parse(textData);
-      if (result.status !== "success") {
-        console.warn("Warning: Item deleted locally, but cloud sync reported an issue.");
-        fetchInventory(false);
-      }
+      const { error } = await supabase
+        .from('Inventory')
+        .delete()
+        .eq('id', product.id)
+        .eq('client_id', clientId);
+
+      if (error) throw error;
     } catch (error) {
-      console.error("Failed to delete product from cloud:", error);
+      console.error("Failed to delete product from Supabase:", error);
       fetchInventory(false);
     }
   };
@@ -429,7 +397,7 @@ export default function CheckoutScreen() {
     String(p.category || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!webAppUrl) {
+  if (!clientId) {
     return (
       <div style={{ 
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif', 
@@ -440,24 +408,24 @@ export default function CheckoutScreen() {
           backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: '30px 20px', borderRadius: '16px', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)', 
           backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.2)', width: '100%', maxWidth: '380px', textAlign: 'center', boxSizing: 'border-box'
         }}>
-          <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>Client POS Setup</h1>
-          <p style={{ color: '#e5e7eb', fontSize: '13px', marginBottom: '20px' }}>Paste the client's Google Apps Script Web App URL below to link their database.</p>
+          <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>Client Database Setup</h1>
+          <p style={{ color: '#e5e7eb', fontSize: '13px', marginBottom: '20px' }}>Enter the unique Client ID (e.g., store_101) to link your database.</p>
           
-          <form onSubmit={handleSaveWebAppUrl} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <form onSubmit={handleSaveClientId} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ textAlign: 'left' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#f3f4f6', marginBottom: '6px' }}>Web App URL</label>
-              <textarea 
-                rows="3"
-                value={setupUrlInput} 
-                onChange={(e) => setSetupUrlInput(e.target.value)} 
-                placeholder="https://script.google.com/macros/s/.../exec"
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#f3f4f6', marginBottom: '6px' }}>Client ID</label>
+              <input 
+                type="text"
+                value={setupClientIdInput} 
+                onChange={(e) => setSetupClientIdInput(e.target.value)} 
+                placeholder="store_101"
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.85)', color: '#1f2937', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}
                 required
               />
             </div>
 
             <button type="submit" style={{ backgroundColor: '#2563eb', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)' }}>
-              Connect Client Database
+              Connect Supabase Client
             </button>
           </form>
         </div>
@@ -669,13 +637,14 @@ export default function CheckoutScreen() {
                   onClick={() => { setShowSettings(!showSettings); setShowAddProduct(false); setShowReport(false); setIsSidebarOpen(false); }}
                   style={{ backgroundColor: 'rgba(75, 85, 99, 0.9)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}
                 >
-                  ⚙️ Database URL
+                  ⚙️ Client Settings
                 </button>
               </>
             )}
           </div>
         )}
 
+        {/* Editing Modal */}
         {editingProduct && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '15px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#ffffff', padding: '25px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', boxSizing: 'border-box' }}>
@@ -703,196 +672,14 @@ export default function CheckoutScreen() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                   <button type="button" onClick={() => setEditingProduct(null)} style={{ flex: 1, backgroundColor: '#9ca3af', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" style={{ flex: 1, backgroundColor: '#059669', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save Changes</button>
+                  <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save Edits</button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-        {showSettings && currentUser.role === 'admin' ? (
-          <div style={{ maxWidth: '450px', margin: '0 auto', backgroundColor: 'rgba(255,255,255,0.92)', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h2 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>Database Settings</h2>
-              <button type="button" onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#4b5563' }}>&times;</button>
-            </div>
-            <p style={{ fontSize: '13px', color: '#4b5563', marginBottom: '15px' }}>Current Web App URL linked to this browser:</p>
-            <div style={{ background: '#f3f4f6', padding: '10px', borderRadius: '6px', fontSize: '11px', color: '#374151', wordBreak: 'break-all', marginBottom: '15px' }}>
-              {webAppUrl}
-            </div>
-            <button onClick={handleDisconnectClient} style={{ backgroundColor: '#dc2626', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '13px' }}>
-              Disconnect / Change Client URL
-            </button>
-          </div>
-        ) : showAddProduct && currentUser.role === 'admin' ? (
-          <div style={{ maxWidth: '450px', margin: '0 auto', backgroundColor: 'rgba(255,255,255,0.92)', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h2 style={{ margin: 0, color: '#1f2937' }}>Add New Product</h2>
-              <button type="button" onClick={() => setShowAddProduct(false)} style={{ background: 'none', border: 'none', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#4b5563' }}>&times;</button>
-            </div>
-            <form onSubmit={handleAddProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563' }}>Item Name</label>
-                <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Standing Fan" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563' }}>Price (GHC)</label>
-                <input type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="e.g. 50.00" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563' }}>Stock Quantity</label>
-                <input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="e.g. 20" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563' }}>Category</label>
-                <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="e.g. Electronics" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
-              </div>
-              <button type="submit" style={{ backgroundColor: '#2563eb', color: 'white', padding: '12px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>Save & Sync Product</button>
-            </form>
-          </div>
-        ) : showReport && currentUser.role === 'admin' ? (
-          <div style={{ maxWidth: '700px', margin: '0 auto', backgroundColor: 'rgba(255,255,255,0.92)', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
-            <h2 style={{ marginBottom: '15px', color: '#1f2937' }}>Sales Activity Report</h2>
-            {sales.length === 0 ? (
-              <p style={{ color: '#6b7280' }}>No sales recorded in this session yet.</p>
-            ) : (
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                {sales.map((s, idx) => (
-                  <li key={idx} style={{ padding: '12px', borderBottom: '1px solid #e5e7eb', marginBottom: '8px' }}>
-                    <strong>{s.timestamp}</strong> - Cashier: {s.cashier} <br/>
-                    <span style={{ color: '#4b5563', fontSize: '13px' }}>Items: {s.items}</span> <br/>
-                    <span style={{ color: '#059669', fontWeight: 'bold' }}>Total: GHC {s.totalAmount.toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : (
-          <>
-            <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
-              <input 
-                type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="🔍 Search live inventory..." 
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.4)', fontSize: '14px', backgroundColor: 'rgba(255, 255, 255, 0.88)', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
-              {filteredProducts.map(p => (
-                <div 
-                  key={p.id} 
-                  onMouseEnter={() => setActiveProductId(p.id)}
-                  onMouseLeave={() => setActiveProductId(null)}
-                  onClick={() => {
-                    if (currentUser.role === 'admin') {
-                      setActiveProductId(activeProductId === p.id ? null : p.id);
-                    } else {
-                      addToCart(p);
-                    }
-                  }}
-                  style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    padding: '12px', 
-                    borderRadius: '10px', 
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    justifyContent: 'space-between', 
-                    boxSizing: 'border-box',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    border: currentUser.role === 'admin' && activeProductId === p.id ? '2px solid #2563eb' : '2px solid transparent'
-                  }}
-                >
-                  {currentUser.role === 'admin' && (
-                    <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(p);
-                        }}
-                        title="Add to Cart"
-                        style={{
-                          background: '#059669',
-                          border: 'none',
-                          borderRadius: '4px',
-                          color: '#ffffff',
-                          padding: '3px 6px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        + Cart
-                      </button>
-                    </div>
-                  )}
-
-                  <div style={{ flex: 1, paddingRight: currentUser.role === 'admin' ? '45px' : '0' }}>
-                    <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#111827' }}>{p.name}</h3>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#4b5563' }}>{p.category}</p>
-                    <p style={{ margin: '0', fontWeight: 'bold', color: '#059669', fontSize: '14px' }}>GHC {parseFloat(p.price || 0).toFixed(2)}</p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Stock: {p.stock}</p>
-                  </div>
-
-                  {currentUser.role === 'admin' && activeProductId === p.id && (
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: '8px', 
-                      marginTop: '10px',
-                      paddingTop: '8px',
-                      borderTop: '1px solid rgba(209, 213, 219, 0.8)',
-                      animation: 'fadeIn 0.2s ease-in-out'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    >
-                      <button 
-                        onClick={() => handleOpenEdit(p)}
-                        style={{ 
-                          flex: 1, 
-                          backgroundColor: '#f3f4f6', 
-                          border: '1px solid #d1d5db', 
-                          borderRadius: '6px', 
-                          padding: '6px 4px', 
-                          fontSize: '12px', 
-                          fontWeight: 'bold', 
-                          cursor: 'pointer', 
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteProduct(p)}
-                        style={{ 
-                          flex: 1, 
-                          backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                          border: '1px solid rgba(239, 68, 68, 0.3)', 
-                          borderRadius: '6px', 
-                          padding: '6px 4px', 
-                          fontSize: '12px', 
-                          fontWeight: 'bold', 
-                          cursor: 'pointer', 
-                          color: '#dc2626',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
-} 
+}
