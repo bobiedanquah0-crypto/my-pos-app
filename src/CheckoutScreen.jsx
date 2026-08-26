@@ -61,7 +61,7 @@ export default function CheckoutScreen() {
   }, [clientId]);
 
   const addToCart = (product) => {
-    const itemName = product["Item Name"];
+    const itemName = product["Items Name"];
     const itemPrice = Number(product.Price || 0);
     const itemStock = Number(product.Stock || 0);
 
@@ -215,10 +215,9 @@ export default function CheckoutScreen() {
       return;
     }
 
-    // Mapping payload keys to match exact Supabase column headers: "Iteam Name", Price, Stock
     const productPayload = {
       client_id: clientId,
-      "Item Name": newName.trim(),
+      "Items Name": newName.trim(),
       Price: parseFloat(newPrice),
       Stock: parseInt(newStock) || 0
     };
@@ -243,7 +242,7 @@ export default function CheckoutScreen() {
   };
 
   const filteredProducts = products.filter(p => 
-    String(p["Item Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
+    String(p["Items Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -378,7 +377,7 @@ export default function CheckoutScreen() {
                   }}
                 >
                   <div>
-                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Iteam Name"]}</h4>
+                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Items Name"]}</h4>
                   </div>
                   <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
