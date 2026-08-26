@@ -431,17 +431,17 @@ export default function CheckoutScreen() {
     String(p["Items Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
- return (
-  <div style={{
-    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url(${linaImage})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    minHeight: '100vh'
-  }}>
-    <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
+
+  return (
+    <div style={{
+      backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url(${linaImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      minHeight: '100vh'
+    }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
-        
+      
         {/* Top Bar */}
         <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
