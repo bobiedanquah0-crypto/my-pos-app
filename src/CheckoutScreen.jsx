@@ -33,6 +33,15 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
+  // Edit Product State
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editStock, setEditStock] = useState('');
+
+  // Hover state tracking product ID
+  const [hoveredProductId, setHoveredProductId] = useState(null);
+
   const isSyncingRef = useRef(false);
 
   const [newName, setNewName] = useState('');
@@ -357,6 +366,64 @@ export default function CheckoutScreen() {
     }
   };
 
+  // Start editing a product
+  const startEditProduct = (product, e) => {
+    e.stopPropagation(); // Prevent triggering add to cart
+    setEditingProduct(product);
+    setEditName(product["Items Name"] || '');
+    setEditPrice(product.Price || '');
+    setEditStock(product.Stock || '');
+  };
+
+  // Save product edit
+  const handleEditProductSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingProduct || !editName || !editPrice) return;
+
+    try {
+      const { error } = await supabase
+        .from('Inventory')
+        .update({
+          "Items Name": editName.trim(),
+          Price: parseFloat(editPrice),
+          Stock: parseInt(editStock) || 0
+        })
+        .eq('id', editingProduct.id)
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+
+      alert("Product updated successfully!");
+      setEditingProduct(null);
+      fetchInventory(false);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      alert("Failed to update product.");
+    }
+  };
+
+  // Delete product
+  const handleDeleteProduct = async (productId, productName, e) => {
+    e.stopPropagation(); // Prevent triggering add to cart
+    if (!window.confirm(`Are you sure you want to delete "${productName}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('Inventory')
+        .delete()
+        .eq('id', productId)
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+
+      alert("Product deleted successfully!");
+      fetchInventory(false);
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      alert("Failed to delete product.");
+    }
+  };
+
   const filteredProducts = products.filter(p => 
     String(p["Items Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -369,7 +436,7 @@ export default function CheckoutScreen() {
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
         
-        {/* Top Bar (Cleaned up for phone view - holds Menu and Cart) */}
+        {/* Top Bar */}
         <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button 
@@ -435,7 +502,7 @@ export default function CheckoutScreen() {
           </div>
         </div>
 
-        {/* Sidebar Menu (Now includes Active Profile & Switch Account Button at top) */}
+        {/* Sidebar Menu */}
         {isSidebarOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '280px', height: '100%', backgroundColor: 'rgba(17, 24, 39, 0.96)', zIndex: 1100, padding: '25px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -443,14 +510,12 @@ export default function CheckoutScreen() {
               <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffff', fontSize: '22px', cursor: 'pointer' }}>&times;</button>
             </div>
 
-            {/* Active User Profile Info inside Sidebar */}
             <div style={{ backgroundColor: 'rgba(255,255,255,0.07)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '2px' }}>Logged in as:</div>
               <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>👤 {currentUser.fullName}</div>
               <div style={{ fontSize: '12px', color: '#d1d5db', textTransform: 'uppercase', marginTop: '2px' }}>Role: {currentUser.role}</div>
             </div>
 
-            {/* Switch Account Button inside Sidebar */}
             <button onClick={handleLogout} style={{ backgroundColor: 'rgba(239, 68, 68, 0.85)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>
               ⇄ Switch Account / Logout
             </button>
@@ -459,7 +524,6 @@ export default function CheckoutScreen() {
 
             <button onClick={() => { fetchInventory(false); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>🔄 Refresh Inventory</button>
             
-            {/* Admin Exclusive Tools */}
             {currentUser.role === 'admin' && (
               <>
                 <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
@@ -470,7 +534,38 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Manage Users Modal (Admin UI) */}
+        {/* Edit Product Modal (Admin Only) */}
+        {editingProduct && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '400px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Edit Product</h3>
+                <button onClick={() => setEditingProduct(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+              </div>
+
+              <form onSubmit={handleEditProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Product Name</label>
+                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Price (GHC)</label>
+                  <input type="number" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Stock Quantity</label>
+                  <input type="number" value={editStock} onChange={e => setEditStock(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                  <button type="button" onClick={() => setEditingProduct(null)} style={{ flex: 1, backgroundColor: '#4b5563', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ flex: 1, backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Update Product</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Manage Users Modal */}
         {showManageUsers && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '450px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -583,21 +678,42 @@ export default function CheckoutScreen() {
                 <div 
                   key={product.id}
                   onClick={() => addToCart(product)}
+                  onMouseEnter={() => setHoveredProductId(product.id)}
+                  onMouseLeave={() => setHoveredProductId(null)}
                   style={{ 
                     backgroundColor: 'rgba(17, 24, 39, 0.85)', backdropFilter: 'blur(8px)', 
                     border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '10px', padding: '12px', 
                     cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                   }}
                 >
                   <div>
                     <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Items Name"]}</h4>
                   </div>
-                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                    <div>
+                  <div>
+                    <div style={{ marginTop: '8px', marginBottom: '8px' }}>
                       <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>GHC {Number(product.Price || 0).toFixed(2)}</div>
                       <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.Stock ?? 0}</div>
                     </div>
+
+                    {/* Admin Edit & Delete Buttons (Visible Only on Hover) */}
+                    {currentUser.role === 'admin' && hoveredProductId === product.id && (
+                      <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px', animation: 'fadeIn 0.15s ease-in-out' }}>
+                        <button 
+                          onClick={(e) => startEditProduct(product, e)} 
+                          style={{ flex: 1, backgroundColor: 'rgba(37, 99, 235, 0.9)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button 
+                          onClick={(e) => handleDeleteProduct(product.id, product["Items Name"], e)} 
+                          style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
