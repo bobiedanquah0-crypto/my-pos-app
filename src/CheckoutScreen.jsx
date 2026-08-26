@@ -175,9 +175,9 @@ export default function CheckoutScreen() {
           {!selectedAccountForLogin ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <p style={{ fontSize: '13px', color: '#9ca3af', textAlign: 'center', margin: '0 0 10px 0' }}>Select your account profile:</p>
-              {accounts.map((acc) => (
+              {accounts.map((acc, index) => (
                 <button 
-                  key={acc.id || acc.fullName}
+                  key={index}
                   onClick={() => setSelectedAccountForLogin(acc)}
                   style={{ padding: '12px', backgroundColor: acc.role === 'admin' ? '#2563eb' : '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
                 >
@@ -219,7 +219,7 @@ export default function CheckoutScreen() {
     const itemPrice = Number(product.Price || 0);
     const itemStock = Number(product.Stock || 0);
 
-    const cartItem = cart.find(item => item.id === product.id);
+    const cartItem = cart.find(item => item["Items Name"] === itemName);
     const currentQtyInCart = cartItem ? cartItem.qty : 0;
 
     if (itemStock - currentQtyInCart <= 0) {
@@ -228,14 +228,14 @@ export default function CheckoutScreen() {
     }
 
     if (cartItem) {
-      setCart(cart.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
+      setCart(cart.map(item => item["Items Name"] === itemName ? { ...item, qty: item.qty + 1 } : item));
     } else {
       setCart([...cart, { ...product, name: itemName, price: itemPrice, stock: itemStock, qty: 1 }]);
     }
   };
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.id !== productId));
+  const removeFromCart = (itemName) => {
+    setCart(cart.filter(item => item["Items Name"] !== itemName));
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -295,7 +295,7 @@ export default function CheckoutScreen() {
 
     isSyncingRef.current = true;
     const updatedProducts = products.map(prod => {
-      const cartMatch = cart.find(item => item.id === prod.id);
+      const cartMatch = cart.find(item => item["Items Name"] === prod["Items Name"]);
       if (cartMatch) {
         return { ...prod, Stock: Math.max(0, Number(prod.Stock || 0) - Number(cartMatch.qty)) };
       }
@@ -327,9 +327,12 @@ export default function CheckoutScreen() {
     try {
       await supabase.from('Sales').insert([newSaleRecord]);
       for (const item of activeCart) {
-        const matchingProduct = updatedProducts.find(p => p.id === item.id);
+        const matchingProduct = updatedProducts.find(p => p["Items Name"] === item["Items Name"]);
         if (matchingProduct) {
-          await supabase.from('Inventory').update({ Stock: matchingProduct.Stock }).eq('id', item.id).eq('client_id', clientId);
+          await supabase.from('Inventory')
+            .update({ Stock: matchingProduct.Stock })
+            .eq('Items Name', item["Items Name"])
+            .eq('client_id', clientId);
         }
       }
     } catch (error) {
@@ -364,53 +367,46 @@ export default function CheckoutScreen() {
 
   const startEditProduct = (product, e) => {
     e.stopPropagation();
-    const productId = product.id || product.product_id || product._id;
-    
-    console.log("Selected product to edit:", product);
-    console.log("Extracted product ID:", productId);
+    const identifier = product["Items Name"];
 
-    setEditingProduct({ ...product, resolvedId: productId });
-    setEditName(product["Items Name"] || '');
+    setEditingProduct({ ...product, resolvedId: identifier });
+    setEditName(identifier || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
   };
 
   const handleEditProductSubmit = async (e) => {
     e.preventDefault();
-    const targetId = editingProduct?.resolvedId || editingProduct?.id;
+    const targetName = editingProduct?.resolvedId || editingProduct?.["Items Name"];
 
-    if (!editingProduct || !targetId || !editName || !editPrice) {
-      alert("Error: Product ID is missing. Cannot update.");
+    if (!targetName || !editName || !editPrice) {
+      alert("Error: Product name identifier is missing. Cannot update.");
       return;
     }
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('Inventory')
         .update({
           "Items Name": editName.trim(),
           Price: parseFloat(editPrice),
           Stock: parseInt(editStock) || 0
         })
-        .eq('id', targetId)
-        .select();
+        .eq('Items Name', targetName)
+        .eq('client_id', clientId);
 
-      if (error) {
-        console.error("Supabase update error details:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("Update successful, returned data:", data);
       alert("Product updated successfully!");
       setEditingProduct(null);
       fetchInventory(false);
     } catch (error) {
       console.error("Error updating product:", error);
-      alert(`Failed to update product: ${error.message || error.details || 'Unknown error'}`);
+      alert(`Failed to update product: ${error.message || 'Unknown error'}`);
     }
   };
 
-  const handleDeleteProduct = async (productId, productName, e) => {
+  const handleDeleteProduct = async (productName, e) => {
     e.stopPropagation();
     if (!window.confirm(`Are you sure you want to delete "${productName}"?`)) return;
 
@@ -418,7 +414,7 @@ export default function CheckoutScreen() {
       const { error } = await supabase
         .from('Inventory')
         .delete()
-        .eq('id', productId)
+        .eq('Items Name', productName)
         .eq('client_id', clientId);
 
       if (error) throw error;
@@ -486,7 +482,7 @@ export default function CheckoutScreen() {
                             <span style={{ fontWeight: '500' }}>{item.name}</span>
                             <span style={{ color: '#34d399', fontSize: '12px' }}>GHC {(item.price * item.qty).toFixed(2)} (x{item.qty})</span>
                           </div>
-                          <button onClick={() => removeFromCart(item.id)} style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
+                          <button onClick={() => removeFromCart(item["Items Name"])} style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
                         </li>
                       ))}
                     </ul>
@@ -681,9 +677,9 @@ export default function CheckoutScreen() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product, index) => (
                 <ProductCard 
-                  key={product.id || product.product_id}
+                  key={index}
                   product={product}
                   currentUser={currentUser}
                   onAddToCart={addToCart}
@@ -736,7 +732,7 @@ function ProductCard({ product, currentUser, onAddToCart, onStartEdit, onDelete 
               ✏️ Edit
             </button>
             <button 
-              onClick={(e) => onDelete(product.id || product.product_id, product["Items Name"], e)} 
+              onClick={(e) => onDelete(product["Items Name"], e)} 
               style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
             >
               &times; Delete
