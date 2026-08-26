@@ -729,13 +729,13 @@ function ProductCard({ product, currentUser, onAddToCart, onStartEdit, onDelete 
               onClick={(e) => onStartEdit(product, e)} 
               style={{ flex: 1, backgroundColor: 'transparent', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              ✏️ Edit
+              ✏️ 
             </button>
             <button 
               onClick={(e) => onDelete(product["Items Name"], e)} 
               style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              &times; Delete
+              &times; 
             </button>
           </div>
         )}
