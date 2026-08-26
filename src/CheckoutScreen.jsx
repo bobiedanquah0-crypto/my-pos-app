@@ -57,16 +57,19 @@ export default function CheckoutScreen() {
 
   const fetchSalesHistory = async () => {
     try {
+      console.log("Querying sales for client_id:", clientId);
       const { data, error } = await supabase
         .from('Sales')
         .select('*')
-        .eq('client_id', clientId)
+        .ilike('client_id', clientId) // case-insensitive match
         .order('id', { ascending: false });
 
       if (error) throw error;
+      console.log("Sales history fetched successfully:", data);
       if (data) setSalesHistory(data);
     } catch (error) {
       console.error("Error fetching sales history:", error);
+      alert(`Error loading sales: ${error.message}`);
     }
   };
 
