@@ -7,12 +7,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function CheckoutScreen() {
-  // Default Client ID set to LINAURA SCENTS
   const [clientId, setClientId] = useState(() => {
     return localStorage.getItem('pos_client_id') || 'LINAURA SCENTS';
   });
-  
-  const [setupClientIdInput, setSetupClientIdInput] = useState('');
 
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem('pos_current_user');
@@ -24,20 +21,12 @@ export default function CheckoutScreen() {
   
   const [cart, setCart] = useState([]);
   const [sales, setSales] = useState([]);
-  const [showReport, setShowReport] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
-
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [editPrice, setEditPrice] = useState('');
-  const [editCategory, setEditCategory] = useState('');
-  const [editStock, setEditStock] = useState('');
 
   const isSyncingRef = useRef(false);
 
@@ -68,57 +57,12 @@ export default function CheckoutScreen() {
   };
 
   useEffect(() => {
-    if (clientId && currentUser) {
+    if (clientId) {
       fetchInventory(false);
       const intervalId = setInterval(() => fetchInventory(true), 15000);
       return () => clearInterval(intervalId);
     }
-  }, [clientId, currentUser]);
-
-  const handleSaveClientId = (e) => {
-    e.preventDefault();
-    if (!setupClientIdInput.trim()) {
-      alert('Please enter a valid Client ID.');
-      return;
-    }
-    const cleanId = setupClientIdInput.trim();
-    localStorage.setItem('pos_client_id', cleanId);
-    setClientId(cleanId);
-  };
-
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    if (!loginPin) {
-      alert('Please enter a security PIN.');
-      return;
-    }
-
-    let fullName = 'Linaura Lead Cashier';
-    let role = 'admin';
-    if (loginIdentifier === 'admin') {
-      fullName = 'Linaura Administrator';
-      role = 'admin';
-    } else {
-      fullName = 'Store Cashier';
-      role = 'cashier';
-    }
-
-    const userObj = { username: loginIdentifier, fullName, role };
-    setCurrentUser(userObj);
-    localStorage.setItem('pos_current_user', JSON.stringify(userObj));
-    setLoginPin('');
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('pos_current_user');
-    setShowReport(false);
-    setShowAddProduct(false);
-    setShowSettings(false);
-    setShowCartDrawer(false);
-    setIsSidebarOpen(false);
-    setEditingProduct(null);
-  };
+  }, [clientId]);
 
   const addToCart = (product) => {
     const cartItem = cart.find(item => item.id === product.id);
@@ -227,7 +171,7 @@ export default function CheckoutScreen() {
     const newSaleRecord = {
       client_id: clientId,
       timestamp: currentDate.toLocaleString(),
-      cashier: currentUser?.fullName || 'Unknown',
+      cashier: currentUser?.fullName || 'Administrator',
       total_amount: totalAmount,
       items: itemsSummaryString
     };
@@ -236,7 +180,7 @@ export default function CheckoutScreen() {
     
     const activeCart = [...cart];
     const currentTotal = totalAmount;
-    const cashierName = currentUser?.fullName || 'Unknown';
+    const cashierName = currentUser?.fullName || 'Administrator';
 
     setCart([]);
     setShowCartDrawer(false);
@@ -273,14 +217,17 @@ export default function CheckoutScreen() {
 
     const productPayload = {
       client_id: clientId,
-      name: newName,
+      name: newName.trim(),
       price: parseFloat(newPrice),
-      category: newCategory || 'Fragrances',
+      category: newCategory.trim() || 'Fragrances',
       stock: parseInt(newStock) || 0
     };
 
     try {
-      const { error } = await supabase.from('Inventory').insert([productPayload]);
+      const { error } = await supabase
+        .from('Inventory')
+        .insert([productPayload]);
+
       if (error) throw error;
 
       alert("Product successfully added to LINAURA SCENTS inventory!");
@@ -292,7 +239,7 @@ export default function CheckoutScreen() {
       fetchInventory(false);
     } catch (error) {
       console.error("Error saving product:", error);
-      alert("Error saving product to cloud.");
+      alert(`Error saving product to cloud: ${error.message || JSON.stringify(error)}`);
     }
   };
 
@@ -376,12 +323,11 @@ export default function CheckoutScreen() {
         {isSidebarOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '280px', height: '100%', backgroundColor: 'rgba(17, 24, 39, 0.96)', zIndex: 1100, padding: '25px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#ffffff', margin: 0, fontSize: '18px' }}>Linaura Menu</h3>
+              <h3 style={{ color: '#ffffff', margin: 0, fontSize: '18px' }}>LINAURA SCENTS</h3>
               <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffff', fontSize: '22px', cursor: 'pointer' }}>&times;</button>
             </div>
             <button onClick={() => { fetchInventory(false); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>🔄 Refresh Inventory</button>
-            <button onClick={() => { setShowAddProduct(!showAddProduct); setShowReport(false); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
-            <button onClick={handleLogout} style={{ backgroundColor: 'rgba(220, 38, 38, 0.8)', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: 'auto' }}>Log Out</button>
+            <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
           </div>
         )}
 
