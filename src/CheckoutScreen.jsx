@@ -442,6 +442,29 @@ export default function CheckoutScreen() {
       minHeight: '100vh',
       fontFamily: 'sans-serif'
     }}>
+      {/* Pure CSS Hover Styling for Smooth Button Reveal */}
+      <style>{`
+        .product-card {
+          transition: all 0.3s ease;
+        }
+        .product-card .action-buttons {
+          opacity: 0;
+          visibility: hidden;
+          max-height: 0;
+          overflow: hidden;
+          transition: all 0.25s ease-in-out;
+        }
+        .product-card:hover .action-buttons {
+          opacity: 1;
+          visibility: visible;
+          max-height: 50px;
+          margin-top: 5px;
+        }
+        .product-card:hover {
+          box-shadow: 0 8px 25px rgba(197, 3, 55, 0.4);
+        }
+      `}</style>
+
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
       
         {/* Top Bar */}
@@ -544,6 +567,7 @@ export default function CheckoutScreen() {
           {filteredProducts.map((product, index) => (
             <div 
               key={index}
+              className="product-card"
               onClick={() => addToCart(product)}
               style={{
                 backgroundColor: 'rgba(17, 24, 39, 0.85)',
@@ -554,7 +578,6 @@ export default function CheckoutScreen() {
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
-                transition: 'transform 0.2s ease, border-color 0.2s ease',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
               }}
             >
@@ -602,16 +625,16 @@ export default function CheckoutScreen() {
                 </button>
 
                 {currentUser.role === 'admin' && (
-                  <div style={{ display: 'flex', gap: '5px' }}>
+                  <div className="action-buttons" style={{ display: 'flex', gap: '5px' }}>
                     <button 
                       onClick={(e) => startEditProduct(product, e)}
-                      style={{ flex: 1, backgroundColor: '#374151', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '10px', cursor: 'pointer' }}
+                      style={{ flex: 1, backgroundColor: '#374151', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '500' }}
                     >
                       Edit
                     </button>
                     <button 
                       onClick={(e) => handleDeleteProduct(product["Items Name"], e)}
-                      style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.3)', color: '#f87171', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '10px', cursor: 'pointer' }}
+                      style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '500' }}
                     >
                       Delete
                     </button>
@@ -648,7 +671,6 @@ export default function CheckoutScreen() {
               <>
                 <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
                 <button onClick={() => { fetchSalesHistory(); setShowSalesModal(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(234, 179, 8, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>📊 View Sales Report</button>
-                <button onClick={() => { setShowManageUsers(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(147, 51, 234, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>👥 Manage Users / Accounts</button>
               </>
             )}
           </div>
@@ -716,69 +738,31 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Manage Users Modal */}
-        {showManageUsers && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
-            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '450px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <h3 style={{ color: '#ffffff', margin: 0 }}>Create New User Account</h3>
-                <button onClick={() => setShowManageUsers(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
-              </div>
-
-              <form onSubmit={handleCreateAccount} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Full Name / Account Name</label>
-                  <input type="text" value={newAccountName} onChange={e => setNewAccountName(e.target.value)} placeholder="e.g., Cashier Three" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Role Type</label>
-                  <select value={newAccountRole} onChange={e => setNewAccountRole(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }}>
-                    <option value="cashier">Cashier</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Security PIN Code</label>
-                  <input type="password" value={newAccountPin} onChange={e => setNewAccountPin(e.target.value)} placeholder="e.g., 5678" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
-                </div>
-                <button type="submit" style={{ backgroundColor: '#2563eb', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' }}>Save New Account</button>
-              </form>
-
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px' }}>
-                <h4 style={{ color: '#fff', fontSize: '13px', margin: '0 0 8px 0' }}>Existing Active Accounts:</h4>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '120px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {accounts.map((acc, index) => (
-                    <li key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#d1d5db', backgroundColor: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px' }}>
-                      <span>{acc.fullName}</span>
-                      <span style={{ color: '#34d399', textTransform: 'uppercase' }}>{acc.role}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Sales History Modal */}
+        {/* Sales Report Modal */}
         {showSalesModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1200, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
-            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '20px', gap: '15px' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '650px', maxHeight: '85vh', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <h3 style={{ color: '#ffffff', margin: 0 }}>Cashier Sales History Breakdown</h3>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Sales Report History</h3>
                 <button onClick={() => setShowSalesModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
               </div>
-              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+              <div style={{ overflowY: 'auto', maxHeight: '60vh', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {salesHistory.length === 0 ? (
-                  <p style={{ color: '#9ca3af', textAlign: 'center' }}>No sales recorded yet.</p>
+                  <p style={{ color: '#9ca3af', textAlign: 'center', padding: '20px' }}>No sales records found.</p>
                 ) : (
                   salesHistory.map((sale, idx) => (
-                    <div key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#e5e7eb', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span>Cashier: {sale.Cashier}</span>
-                        <span style={{ color: '#34d399' }}>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
+                    <div key={idx} style={{ backgroundColor: 'rgba(31, 41, 55, 0.7)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                        <span style={{ color: '#34d399', fontWeight: 'bold' }}>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
+                        <span style={{ color: '#9ca3af', fontSize: '12px' }}>{sale.Timestamp}</span>
                       </div>
-                      <div style={{ color: '#9ca3af' }}>Items: {sale["Items Summary"]}</div>
-                      <div style={{ fontSize: '10px', color: '#6b7280' }}>{sale.Timestamp}</div>
+                      <div style={{ fontSize: '12px', color: '#f3f4f6' }}>
+                        <strong>Items:</strong> {sale["Items Summary"]}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                        Cashier: {sale.Cashier}
+                      </div>
                     </div>
                   ))
                 )}
