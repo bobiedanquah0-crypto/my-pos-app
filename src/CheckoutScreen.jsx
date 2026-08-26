@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import bgImage from './assets/background.jpg'; // Adjust the path to where your image is saved
 
 const SUPABASE_URL = 'https://hihphgfrfvpmytasnmvd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
@@ -434,7 +435,7 @@ export default function CheckoutScreen() {
   return (
     <div style={{ 
       display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', 
-      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1920&q=80")',
+      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("C:\Users\APPLE\Desktop\my-pos-app\src\images.jpg")',
       backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' 
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
