@@ -186,12 +186,13 @@ export default function CheckoutScreen() {
 
     const itemsSummaryString = cart.map(item => `${item.name} (Qty: ${item.qty})`).join(', ');
     const currentDate = new Date();
+    
     const newSaleRecord = {
       client_id: clientId,
-      timestamp: currentDate.toLocaleString(),
-      cashier: currentUser?.fullName || 'Administrator',
-      total_amount: totalAmount,
-      items: itemsSummaryString
+      Timestamp: currentDate.toLocaleString(),
+      Cashier: currentUser?.fullName || 'Administrator',
+      "Total Amount (GHC)": totalAmount,
+      "Items Summary": itemsSummaryString
     };
 
     setSales([newSaleRecord, ...sales]);
@@ -362,11 +363,11 @@ export default function CheckoutScreen() {
                   salesHistory.map((sale, idx) => (
                     <div key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', color: '#f3f4f6' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span style={{ color: '#34d399' }}>Cashier: {sale.cashier}</span>
-                        <span>GHC {Number(sale.total_amount || 0).toFixed(2)}</span>
+                        <span style={{ color: '#34d399' }}>Cashier: {sale.Cashier}</span>
+                        <span>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
                       </div>
-                      <div style={{ color: '#9ca3af', fontSize: '12px' }}>Time: {sale.timestamp}</div>
-                      <div style={{ fontSize: '12px', marginTop: '4px' }}>Items: {sale.items}</div>
+                      <div style={{ color: '#9ca3af', fontSize: '12px' }}>Time: {sale.Timestamp}</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>Items: {sale["Items Summary"]}</div>
                     </div>
                   ))
                 )}
