@@ -62,14 +62,13 @@ export default function CheckoutScreen() {
         .from('Sales')
         .select('*')
         .ilike('client_id', clientId)
-        .order('Timestamp', { ascending: false }); // Sorted by Timestamp instead of id
+        .order('Timestamp', { ascending: false });
 
       if (error) throw error;
       console.log("Sales history fetched successfully:", data);
       if (data) setSalesHistory(data);
     } catch (error) {
       console.error("Error fetching sales history:", error);
-      alert(`Error loading sales: ${error.message}`);
     }
   };
 
@@ -370,7 +369,13 @@ export default function CheckoutScreen() {
                         <span>GHC {Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</span>
                       </div>
                       <div style={{ color: '#9ca3af', fontSize: '12px' }}>Time: {sale.Timestamp}</div>
-                      <div style={{ fontSize: '12px', marginTop: '4px' }}>Items: {sale["Items Summary"]}</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                        Items: {
+                          typeof sale["Items Summary"] === 'object' && sale["Items Summary"] !== null
+                            ? JSON.stringify(sale["Items Summary"])
+                            : String(sale["Items Summary"] || 'N/A')
+                        }
+                      </div>
                     </div>
                   ))
                 )}
