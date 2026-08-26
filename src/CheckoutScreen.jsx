@@ -434,7 +434,7 @@ export default function CheckoutScreen() {
 
   return (
     <div style={{
-      backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url(${linaImage})`,
+      backgroundImage: `linear-gradient(rgba(61, 59, 59, 0.45), rgba(226, 118, 69, 0.45)), url(${linaImage})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
