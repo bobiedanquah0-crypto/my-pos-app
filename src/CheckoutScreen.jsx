@@ -29,13 +29,13 @@ export default function CheckoutScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // Add Product Form State (Includes Image File State)
+  // Add Product Form State
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
   const [newImageFile, setNewImageFile] = useState(null);
 
-  // Edit Product State (Includes Image File State)
+  // Edit Product State
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -320,11 +320,11 @@ export default function CheckoutScreen() {
 
     let uploadedImageUrl = '';
 
-    // Upload image file directly to Supabase storage if selected
+    // Upload image file directly to the 'image' Supabase storage bucket
     if (newImageFile) {
       const fileName = `${Date.now()}_${newImageFile.name.replace(/\s+/g, '_')}`;
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from('image')
         .upload(fileName, newImageFile);
 
       if (uploadError) {
@@ -333,7 +333,7 @@ export default function CheckoutScreen() {
       }
 
       const { data: publicURLData } = supabase.storage
-        .from('product-images')
+        .from('image')
         .getPublicUrl(fileName);
 
       uploadedImageUrl = publicURLData.publicUrl;
@@ -384,11 +384,11 @@ export default function CheckoutScreen() {
 
     let uploadedImageUrl = existingImageUrl;
 
-    // Upload new image file if a new one was picked during edit
+    // Upload new image file if a new file was selected during edit
     if (editImageFile) {
       const fileName = `${Date.now()}_${editImageFile.name.replace(/\s+/g, '_')}`;
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from('image')
         .upload(fileName, editImageFile);
 
       if (uploadError) {
@@ -397,7 +397,7 @@ export default function CheckoutScreen() {
       }
 
       const { data: publicURLData } = supabase.storage
-        .from('product-images')
+        .from('image')
         .getPublicUrl(fileName);
 
       uploadedImageUrl = publicURLData.publicUrl;
