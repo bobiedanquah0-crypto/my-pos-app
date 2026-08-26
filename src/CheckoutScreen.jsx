@@ -39,7 +39,7 @@ export default function CheckoutScreen() {
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
 
-  // Hover state tracking product ID
+  // Hover state tracking specific product ID
   const [hoveredProductId, setHoveredProductId] = useState(null);
 
   const isSyncingRef = useRef(false);
@@ -48,7 +48,6 @@ export default function CheckoutScreen() {
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
 
-  // Fetch accounts from Supabase and force-prepend Administrator
   const fetchAccounts = async () => {
     const defaultAdmin = { 
       id: 'default-admin', 
@@ -366,16 +365,14 @@ export default function CheckoutScreen() {
     }
   };
 
-  // Start editing a product
   const startEditProduct = (product, e) => {
-    e.stopPropagation(); // Prevent triggering add to cart
+    e.stopPropagation();
     setEditingProduct(product);
     setEditName(product["Items Name"] || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
   };
 
-  // Save product edit
   const handleEditProductSubmit = async (e) => {
     e.preventDefault();
     if (!editingProduct || !editName || !editPrice) return;
@@ -402,9 +399,8 @@ export default function CheckoutScreen() {
     }
   };
 
-  // Delete product
   const handleDeleteProduct = async (productId, productName, e) => {
-    e.stopPropagation(); // Prevent triggering add to cart
+    e.stopPropagation();
     if (!window.confirm(`Are you sure you want to delete "${productName}"?`)) return;
 
     try {
@@ -697,20 +693,20 @@ export default function CheckoutScreen() {
                       <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.Stock ?? 0}</div>
                     </div>
 
-                    {/* Admin Edit & Delete Buttons (Visible Only on Hover) */}
+                    {/* Admin Edit & Delete Buttons (Transparent Background & Red Times Symbol) */}
                     {currentUser.role === 'admin' && hoveredProductId === product.id && (
-                      <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px', animation: 'fadeIn 0.15s ease-in-out' }}>
+                      <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
                         <button 
                           onClick={(e) => startEditProduct(product, e)} 
-                          style={{ flex: 1, backgroundColor: 'rgba(37, 99, 235, 0.9)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                          style={{ flex: 1, backgroundColor: 'transparent', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
-                          ✏️ 
+                          ✏️ Edit
                         </button>
                         <button 
                           onClick={(e) => handleDeleteProduct(product.id, product["Items Name"], e)} 
-                          style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                          style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
-                          🗑️ 
+                          &times; Delete
                         </button>
                       </div>
                     )}
