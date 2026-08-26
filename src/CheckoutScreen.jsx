@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import bgImage from './lina.jpg';
+import linaImage from './lina.jpg';
 const SUPABASE_URL = 'https://hihphgfrfvpmytasnmvd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -431,12 +431,15 @@ export default function CheckoutScreen() {
     String(p["Items Name"] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
-    <div style={{ 
-      display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', 
-      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("${linaImage}")',
-      backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' 
-    }}>
+ return (
+  <div style={{
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url(${linaImage})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    minHeight: '100vh'
+  }}>
+    <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
         
         {/* Top Bar */}
