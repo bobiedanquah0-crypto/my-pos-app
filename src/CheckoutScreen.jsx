@@ -39,9 +39,6 @@ export default function CheckoutScreen() {
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
 
-  // Hover state tracking specific product ID
-  const [hoveredProductId, setHoveredProductId] = useState(null);
-
   const isSyncingRef = useRef(false);
 
   const [newName, setNewName] = useState('');
@@ -671,52 +668,67 @@ export default function CheckoutScreen() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
               {filteredProducts.map((product) => (
-                <div 
+                <ProductCard 
                   key={product.id}
-                  onClick={() => addToCart(product)}
-                  onMouseEnter={() => setHoveredProductId(product.id)}
-                  onMouseLeave={() => setHoveredProductId(null)}
-                  style={{ 
-                    backgroundColor: 'rgba(17, 24, 39, 0.85)', backdropFilter: 'blur(8px)', 
-                    border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '10px', padding: '12px', 
-                    cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-                  }}
-                >
-                  <div>
-                    <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Items Name"]}</h4>
-                  </div>
-                  <div>
-                    <div style={{ marginTop: '8px', marginBottom: '8px' }}>
-                      <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>GHC {Number(product.Price || 0).toFixed(2)}</div>
-                      <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.Stock ?? 0}</div>
-                    </div>
-
-                    {/* Admin Edit & Delete Buttons (Transparent Background & Red Times Symbol) */}
-                    {currentUser.role === 'admin' && hoveredProductId === product.id && (
-                      <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-                        <button 
-                          onClick={(e) => startEditProduct(product, e)} 
-                          style={{ flex: 1, backgroundColor: 'transparent', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button 
-                          onClick={(e) => handleDeleteProduct(product.id, product["Items Name"], e)} 
-                          style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
-                        >
-                          &times; Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  product={product}
+                  currentUser={currentUser}
+                  onAddToCart={addToCart}
+                  onStartEdit={startEditProduct}
+                  onDelete={handleDeleteProduct}
+                />
               ))}
             </div>
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
+// Sub-component to isolate each product card's individual hover state
+function ProductCard({ product, currentUser, onAddToCart, onStartEdit, onDelete }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div 
+      onClick={() => onAddToCart(product)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ 
+        backgroundColor: 'rgba(17, 24, 39, 0.85)', backdropFilter: 'blur(8px)', 
+        border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '10px', padding: '12px', 
+        cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+      }}
+    >
+      <div>
+        <h4 style={{ color: '#ffffff', fontSize: '14px', margin: '0 0 6px 0', fontWeight: 'bold'}}>{product["Items Name"]}</h4>
+      </div>
+      <div>
+        <div style={{ marginTop: '8px', marginBottom: '8px' }}>
+          <div style={{ color: '#34d399', fontSize: '14px', fontWeight: 'bold' }}>GHC {Number(product.Price || 0).toFixed(2)}</div>
+          <div style={{ color: '#9ca3af', fontSize: '11px' }}>Stock: {product.Stock ?? 0}</div>
+        </div>
+
+        {/* Admin Edit & Delete Buttons (Isolated per card hover) */}
+        {currentUser.role === 'admin' && isHovered && (
+          <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+            <button 
+              onClick={(e) => onStartEdit(product, e)} 
+              style={{ flex: 1, backgroundColor: 'transparent', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              ✏️ 
+            </button>
+            <button 
+              onClick={(e) => onDelete(product.id, product["Items Name"], e)} 
+              style={{ flex: 1, backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '4px', padding: '4px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              &times; 
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
