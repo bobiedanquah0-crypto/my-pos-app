@@ -435,7 +435,7 @@ export default function CheckoutScreen() {
   return (
     <div style={{ 
       display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', 
-      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("C:\Users\APPLE\Desktop\my-pos-app\src\images.jpg")',
+      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("${bgImage}")',
       backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' 
     }}>
       <div style={{ flex: 1, padding: '15px', overflowY: 'auto', position: 'relative' }}>
