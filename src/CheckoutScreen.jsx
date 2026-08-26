@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase Connection (Replace with your actual keys)
-const SUPABASE_URL = 'sb_publishable_4HmoIRTqgnS_HQzKgac20Q_Ez6IX3qI';
+const SUPABASE_URL = 'https://hihphgfrfvpmytasnmvd.supabase.co/rest/v1/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaHBoZ2ZyZnZwbXl0YXNubXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2OTI1MTQsImV4cCI6MjEwMzI2ODUxNH0.FlogrIG1zX_cabM2c0IMeqRSvjvvcP2EAvCF7B47glg';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
