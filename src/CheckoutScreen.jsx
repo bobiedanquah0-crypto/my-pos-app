@@ -20,27 +20,22 @@ export default function CheckoutScreen() {
   const [loginPin, setLoginPin] = useState('');
   const [selectedAccountForLogin, setSelectedAccountForLogin] = useState(null);
 
-  const [newAccountName, setNewAccountName] = useState('');
-  const [newAccountRole, setNewAccountRole] = useState('cashier');
-  const [newAccountPin, setNewAccountPin] = useState('');
-
   const [cart, setCart] = useState([]);
   const [salesHistory, setSalesHistory] = useState([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showManageUsers, setShowManageUsers] = useState(false);
-  const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [showSalesModal, setShowSalesModal] = useState(false);
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
 
-  // Add Product Form State (Added newImageUrl)
+  // Add Product Form State (Includes Image Field)
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
 
-  // Edit Product State (Added editImageUrl)
+  // Edit Product State (Includes Image Field)
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -327,7 +322,7 @@ export default function CheckoutScreen() {
       "Items Name": newName.trim(),
       Price: parseFloat(newPrice),
       Stock: parseInt(newStock) || 0,
-      image_url: newImageUrl.trim() // Added image field
+      image: newImageUrl.trim() // Changed key to match your 'Image' column
     };
 
     try {
@@ -339,6 +334,7 @@ export default function CheckoutScreen() {
       fetchInventory(false);
     } catch (error) {
       console.error("Error saving product:", error);
+      alert("Failed to add product: " + error.message);
     }
   };
 
@@ -350,7 +346,7 @@ export default function CheckoutScreen() {
     setEditName(identifier || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
-    setEditImageUrl(product.image_url || ''); // Populates edit modal with existing image URL
+    setEditImageUrl(product.Image || product.image || ''); 
   };
 
   const handleEditProductSubmit = async (e) => {
@@ -369,7 +365,7 @@ export default function CheckoutScreen() {
           "Items Name": editName.trim(),
           Price: parseFloat(editPrice),
           Stock: parseInt(editStock) || 0,
-          image_url: editImageUrl.trim() // Updates image field in DB
+          image: editImageUrl.trim()
         })
         .eq('Items Name', targetName)
         .eq('client_id', clientId);
@@ -530,7 +526,7 @@ export default function CheckoutScreen() {
           />
         </div>
 
-        {/* Centered Product Grid Container */}
+        {/* Product Grid Container */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -541,96 +537,98 @@ export default function CheckoutScreen() {
           margin: '0 auto',
           padding: '10px 0'
         }}>
-          {filteredProducts.map((product, index) => (
-            <div 
-              key={index}
-              className="product-card"
-              onClick={() => addToCart(product)}
-              style={{
-                backgroundColor: 'rgba(17, 24, 39, 0.85)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '12px',
-                padding: '15px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-              }}
-            >
-              <div>
-                {/* Image Container: Renders image if URL exists, else falls back to placeholder */}
-                <div style={{ 
-                  height: '130px', 
-                  backgroundColor: '#374151', 
-                  borderRadius: '8px', 
-                  marginBottom: '10px', 
-                  overflow: 'hidden',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: '#9ca3af',
-                  fontSize: '12px'
-                }}>
-                  {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product["Items Name"]} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
-                  ) : (
-                    'Product Image'
-                  )}
+          {filteredProducts.map((product, index) => {
+            const productImg = product.Image || product.image;
+            return (
+              <div 
+                key={index}
+                className="product-card"
+                onClick={() => addToCart(product)}
+                style={{
+                  backgroundColor: 'rgba(17, 24, 39, 0.85)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                }}
+              >
+                <div>
+                  <div style={{ 
+                    height: '130px', 
+                    backgroundColor: '#374151', 
+                    borderRadius: '8px', 
+                    marginBottom: '10px', 
+                    overflow: 'hidden',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#9ca3af',
+                    fontSize: '12px'
+                  }}>
+                    {productImg ? (
+                      <img 
+                        src={productImg} 
+                        alt={product["Items Name"]} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      'Product Image'
+                    )}
+                  </div>
+
+                  <h4 style={{ color: '#fff', fontSize: '14px', margin: '0 0 5px 0', fontWeight: 'bold' }}>
+                    {product["Items Name"]}
+                  </h4>
+                  <p style={{ color: '#34d399', fontSize: '13px', margin: '0 0 10px 0', fontWeight: '600' }}>
+                    GHC {Number(product.Price || 0).toFixed(2)}
+                  </p>
+                  <p style={{ color: '#9ca3af', fontSize: '11px', margin: '0 0 12px 0' }}>
+                    Stock: {product.Stock || 0}
+                  </p>
                 </div>
 
-                <h4 style={{ color: '#fff', fontSize: '14px', margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                  {product["Items Name"]}
-                </h4>
-                <p style={{ color: '#34d399', fontSize: '13px', margin: '0 0 10px 0', fontWeight: '600' }}>
-                  GHC {Number(product.Price || 0).toFixed(2)}
-                </p>
-                <p style={{ color: '#9ca3af', fontSize: '11px', margin: '0 0 12px 0' }}>
-                  Stock: {product.Stock || 0}
-                </p>
-              </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                    style={{
+                      backgroundColor: '#C50337',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    Add to Cart
+                  </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                  style={{
-                    backgroundColor: '#C50337',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    width: '100%'
-                  }}
-                >
-                  Add to Cart
-                </button>
-
-                {currentUser.role === 'admin' && (
-                  <div className="action-buttons" style={{ display: 'flex', gap: '5px' }}>
-                    <button 
-                      onClick={(e) => startEditProduct(product, e)}
-                      style={{ flex: 1, backgroundColor: '#374151', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '500' }}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={(e) => handleDeleteProduct(product["Items Name"], e)}
-                      style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '500' }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
+                  {currentUser.role === 'admin' && (
+                    <div className="action-buttons" style={{ display: 'flex', gap: '5px' }}>
+                      <button 
+                        onClick={(e) => startEditProduct(product, e)}
+                        style={{ flex: 1, backgroundColor: '#374151', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '500' }}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={(e) => handleDeleteProduct(product["Items Name"], e)}
+                        style={{ flex: 1, backgroundColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '500' }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Sidebar Menu */}
@@ -664,7 +662,7 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Add Product Modal (Admin Only) */}
+        {/* Add Product Modal */}
         {showAddProduct && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '400px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -699,7 +697,7 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Edit Product Modal (Admin Only) */}
+        {/* Edit Product Modal */}
         {editingProduct && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '400px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
