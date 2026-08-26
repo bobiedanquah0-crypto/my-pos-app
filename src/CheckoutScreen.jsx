@@ -9,7 +9,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export default function CheckoutScreen() {
   // 1. Dynamic Client Store ID from localStorage (Defaulting to 'store_101')
   const [clientId, setClientId] = useState(() => {
-    return localStorage.getItem('pos_client_id') || 'store_101';
+    return localStorage.getItem('pos_client_id') || 'LINAURA SCENTS';
   });
   
   const [setupClientIdInput, setSetupClientIdInput] = useState('');
