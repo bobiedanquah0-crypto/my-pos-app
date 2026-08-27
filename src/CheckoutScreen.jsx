@@ -385,6 +385,29 @@ export default function CheckoutScreen() {
       alert("Please fill in all required fields.");
       return;
     }
+    const handleDeleteUser = async (userId, userFullName) => {
+  if (userFullName.toLowerCase() === 'administrator' || userId === 'default-admin') {
+    alert("You cannot delete the default administrator account!");
+    return;
+  }
+
+  if (!window.confirm(`Are you sure you want to remove user "${userFullName}"?`)) return;
+
+  try {
+    const { error } = await supabase
+      .from('Users')
+      .delete()
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    alert("User removed successfully!");
+    fetchAccounts(); // Refresh the account list
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    alert("Failed to delete user: " + error.message);
+  }
+};
 
     const userPayload = {
       client_id: clientId,
@@ -851,35 +874,58 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Add User Modal */}
-        {showAddUserModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
-            <div style={{ backgroundColor: '#1f2937', padding: '25px', borderRadius: '12px', width: '100%', maxWidth: '400px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ color: '#fff', margin: 0, fontSize: '16px' }}>Add User / Cashier</h3>
-                <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
-              </div>
-              <form onSubmit={handleAddUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#d1d5db', display: 'block', marginBottom: '4px' }}>Full Name</label>
-                  <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="e.g. Ama Serwaa" required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#d1d5db', display: 'block', marginBottom: '4px' }}>Access PIN (Numbers)</label>
-                  <input type="password" value={newUserPin} onChange={(e) => setNewUserPin(e.target.value)} placeholder="e.g. 5678" required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#d1d5db', display: 'block', marginBottom: '4px' }}>Role</label>
-                  <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }}>
-                    <option value="cashier">Cashier</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <button type="submit" style={{ backgroundColor: '#059669', color: '#fff', padding: '12px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' }}>Save User</button>
-              </form>
+       {/* Manage Users Modal */}
+{showAddUserModal && (
+  <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
+    <div style={{ backgroundColor: '#1f2937', padding: '25px', borderRadius: '12px', width: '100%', maxWidth: '450px', maxHeight: '80vh', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '15px', boxSizing: 'border-box' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ color: '#fff', margin: 0, fontSize: '16px' }}>Manage Users / Cashiers</h3>
+        <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+      </div>
+
+      {/* List Existing Users with Delete Option */}
+      <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 'bold' }}>Existing Accounts:</div>
+        {accounts.map((acc, idx) => (
+          <div key={acc.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: '8px 10px', borderRadius: '6px', fontSize: '13px', color: '#fff' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span>{acc.fullName}</span>
+              <span style={{ fontSize: '10px', color: '#34d399', textTransform: 'uppercase' }}>{acc.role}</span>
             </div>
+            {acc.role !== 'admin' && acc.id !== 'default-admin' && (
+              <button 
+                onClick={() => handleDeleteUser(acc.id, acc.fullName)}
+                style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#f87171', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Remove
+              </button>
+            )}
           </div>
-        )}
+        ))}
+      </div>
+
+      {/* Add New User Form */}
+      <form onSubmit={handleAddUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 'bold' }}>Add New User:</div>
+        <div>
+          <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="Full Name (e.g. Ama Serwaa)" required style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box', fontSize: '13px' }} />
+        </div>
+        <div>
+          <input type="password" value={newUserPin} onChange={(e) => setNewUserPin(e.target.value)} placeholder="Access PIN (Numbers)" required style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box', fontSize: '13px' }} />
+        </div>
+        <div>
+          <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box', fontSize: '13px' }}>
+            <option value="cashier">Cashier</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit" style={{ backgroundColor: '#059669', color: '#fff', padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px', fontSize: '13px' }}>Save New User</button>
+      </form>
+
+    </div>
+  </div>
+)}
 
         {/* Sales History Modal */}
         {showSalesModal && (
