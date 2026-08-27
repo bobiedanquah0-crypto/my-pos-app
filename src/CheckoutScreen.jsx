@@ -406,6 +406,7 @@ export default function CheckoutScreen() {
     }
   };
 
+  // --- THIS FUNCTION WAS MISSING IN THE PREVIOUS SNIPPET ---
   const handleDeleteUser = async (user) => {
     if (user.id === 'default-admin' || user.role === 'admin') {
       alert("Cannot remove administrator accounts.");
@@ -416,7 +417,7 @@ export default function CheckoutScreen() {
 
     try {
       let query = supabase.from('Users').delete().eq('client_id', clientId);
-      if (user.id) {
+      if (user.id && user.id !== 'default-admin') {
         query = query.eq('id', user.id);
       } else {
         query = query.eq('fullName', user.fullName);
