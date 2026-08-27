@@ -24,6 +24,7 @@ export default function CheckoutScreen() {
   const [salesHistory, setSalesHistory] = useState([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showSalesModal, setShowSalesModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +36,11 @@ export default function CheckoutScreen() {
   const [newStock, setNewStock] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newImageFile, setNewImageFile] = useState(null);
+
+  // Add User Form State
+  const [newFullName, setNewFullName] = useState('');
+  const [newUserPin, setNewUserPin] = useState('');
+  const [newUserRole, setNewUserRole] = useState('cashier');
 
   // Edit Product State
   const [editingProduct, setEditingProduct] = useState(null);
@@ -364,6 +370,35 @@ export default function CheckoutScreen() {
     } catch (error) {
       console.error("Error saving product:", error);
       alert("Failed to add product: " + error.message);
+    }
+  };
+
+  const handleAddUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!newFullName || !newUserPin) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    const userPayload = {
+      client_id: clientId,
+      fullName: newFullName.trim(),
+      pin: newUserPin.trim(),
+      role: newUserRole
+    };
+
+    try {
+      const { error } = await supabase.from('Users').insert([userPayload]);
+      if (error) throw error;
+      alert("User added successfully! They can now log in with their PIN.");
+      setNewFullName('');
+      setNewUserPin('');
+      setNewUserRole('cashier');
+      setShowAddUserModal(false);
+      fetchAccounts();
+    } catch (error) {
+      console.error("Error adding user:", error);
+      alert("Failed to add user: " + error.message);
     }
   };
 
@@ -724,6 +759,7 @@ export default function CheckoutScreen() {
               <>
                 <button onClick={() => { setShowAddProduct(!showAddProduct); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(37, 99, 235, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>➕ Add Product</button>
                 <button onClick={() => { fetchSalesHistory(); setShowSalesModal(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(234, 179, 8, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>📊 View Sales Report</button>
+                <button onClick={() => { setShowAddUserModal(true); setIsSidebarOpen(false); }} style={{ backgroundColor: 'rgba(147, 51, 234, 0.8)', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'left', cursor: 'pointer' }}>👤 Add User / Cashier</button>
               </>
             )}
           </div>
@@ -768,7 +804,41 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Sales Report Modal (Admin Only) - Updated with robust JSONB/String summary handling */}
+        {/* Add User / Cashier Modal */}
+        {showAddUserModal && currentUser.role === 'admin' && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '400px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <h3 style={{ color: '#ffffff', margin: 0 }}>Add New User / Cashier</h3>
+                <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+              </div>
+
+              <form onSubmit={handleAddUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Full Name</label>
+                  <input type="text" value={newFullName} onChange={e => setNewFullName(e.target.value)} placeholder="e.g., Jane Doe" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>PIN Code</label>
+                  <input type="password" value={newUserPin} onChange={e => setNewUserPin(e.target.value)} placeholder="e.g., 5678" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Role</label>
+                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }}>
+                    <option value="cashier">Cashier</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setShowAddUserModal(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#4b5563', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#9333ea', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Save User</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sales Report Modal (Admin Only) */}
         {showSalesModal && currentUser.role === 'admin' && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '750px', maxHeight: '85vh', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
