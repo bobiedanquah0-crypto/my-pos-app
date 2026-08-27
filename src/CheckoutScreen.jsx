@@ -33,6 +33,7 @@ export default function CheckoutScreen() {
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
+  const [newCategory, setNewCategory] = useState('');
   const [newImageFile, setNewImageFile] = useState(null);
 
   // Edit Product State
@@ -40,6 +41,7 @@ export default function CheckoutScreen() {
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
+  const [editCategory, setEditCategory] = useState('');
   const [editImageFile, setEditImageFile] = useState(null);
   const [existingImageUrl, setExistingImageUrl] = useState('');
 
@@ -190,6 +192,11 @@ export default function CheckoutScreen() {
     const itemName = product["Items Name"];
     const itemPrice = Number(product.Price || 0);
     const itemStock = Number(product.Stock || 0);
+    
+    let itemCat = product.category || product.Category || '';
+    if (typeof itemCat === 'object' && itemCat !== null) {
+      itemCat = itemCat.name || itemCat.title || JSON.stringify(itemCat);
+    }
 
     const cartItem = cart.find(item => item["Items Name"] === itemName);
     const currentQtyInCart = cartItem ? cartItem.qty : 0;
@@ -202,7 +209,7 @@ export default function CheckoutScreen() {
     if (cartItem) {
       setCart(cart.map(item => item["Items Name"] === itemName ? { ...item, qty: item.qty + 1 } : item));
     } else {
-      setCart([...cart, { ...product, name: itemName, price: itemPrice, stock: itemStock, qty: 1 }]);
+      setCart([...cart, { ...product, name: itemName, price: itemPrice, stock: itemStock, category: itemCat, qty: 1 }]);
     }
   };
 
@@ -343,6 +350,7 @@ export default function CheckoutScreen() {
       "Items Name": newName.trim(),
       Price: parseFloat(newPrice),
       Stock: parseInt(newStock) || 0,
+      category: newCategory.trim(),
       image: uploadedImageUrl
     };
 
@@ -350,7 +358,7 @@ export default function CheckoutScreen() {
       const { error } = await supabase.from('Inventory').insert([productPayload]);
       if (error) throw error;
       alert("Product successfully added!");
-      setNewName(''); setNewPrice(''); setNewStock(''); setNewImageFile(null);
+      setNewName(''); setNewPrice(''); setNewStock(''); setNewCategory(''); setNewImageFile(null);
       setShowAddProduct(false);
       fetchInventory(false);
     } catch (error) {
@@ -363,11 +371,16 @@ export default function CheckoutScreen() {
     e.stopPropagation();
     const identifier = product["Items Name"];
     const currentImg = product.Image || product.image || '';
+    let catVal = product.category || product.Category || '';
+    if (typeof catVal === 'object' && catVal !== null) {
+      catVal = catVal.name || '';
+    }
 
     setEditingProduct({ ...product, resolvedId: identifier });
     setEditName(identifier || '');
     setEditPrice(product.Price || '');
     setEditStock(product.Stock || '');
+    setEditCategory(catVal);
     setExistingImageUrl(currentImg);
     setEditImageFile(null);
   };
@@ -408,6 +421,7 @@ export default function CheckoutScreen() {
           "Items Name": editName.trim(),
           Price: parseFloat(editPrice),
           Stock: parseInt(editStock) || 0,
+          category: editCategory.trim(),
           image: uploadedImageUrl
         })
         .eq('Items Name', targetName)
@@ -582,6 +596,11 @@ export default function CheckoutScreen() {
         }}>
           {filteredProducts.map((product, index) => {
             const productImg = product.Image || product.image;
+            let displayCat = product.category || product.Category || '';
+            if (typeof displayCat === 'object' && displayCat !== null) {
+              displayCat = displayCat.name || '';
+            }
+
             return (
               <div 
                 key={index}
@@ -626,6 +645,11 @@ export default function CheckoutScreen() {
                   <h4 style={{ color: '#fff', fontSize: '14px', margin: '0 0 5px 0', fontWeight: 'bold' }}>
                     {product["Items Name"]}
                   </h4>
+                  {displayCat && (
+                    <p style={{ color: '#93c5fd', fontSize: '11px', margin: '0 0 5px 0' }}>
+                      {String(displayCat)}
+                    </p>
+                  )}
                   <p style={{ color: '#34d399', fontSize: '13px', margin: '0 0 10px 0', fontWeight: '600' }}>
                     GHC {Number(product.Price || 0).toFixed(2)}
                   </p>
@@ -720,6 +744,10 @@ export default function CheckoutScreen() {
                   <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., Oud Essence" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
                 </div>
                 <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Category</label>
+                  <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="e.g., Perfumes" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
+                </div>
+                <div>
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Price (GHC)</label>
                   <input type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
                 </div>
@@ -740,7 +768,7 @@ export default function CheckoutScreen() {
           </div>
         )}
 
-        {/* Sales Report Modal (Admin Only) */}
+        {/* Sales Report Modal (Admin Only) - Updated with robust JSONB/String summary handling */}
         {showSalesModal && currentUser.role === 'admin' && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1250, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', width: '100%', maxWidth: '750px', maxHeight: '85vh', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -763,14 +791,35 @@ export default function CheckoutScreen() {
                       </tr>
                     </thead>
                     <tbody>
-                      {salesHistory.map((sale, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                          <td style={{ padding: '8px', color: '#d1d5db', whiteSpace: 'nowrap' }}>{sale.Timestamp}</td>
-                          <td style={{ padding: '8px', color: '#34d399', fontWeight: 'bold' }}>{sale.Cashier}</td>
-                          <td style={{ padding: '8px' }}>{sale["Items Summary"]}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</td>
-                        </tr>
-                      ))}
+                      {salesHistory.map((sale, idx) => {
+                        let summaryText = sale["Items Summary"];
+                        
+                        if (typeof summaryText === 'object' && summaryText !== null) {
+                          if (Array.isArray(summaryText)) {
+                            summaryText = summaryText.map(i => `${i.name || i.title || 'Item'} (Qty: ${i.qty || 1})`).join(', ');
+                          } else {
+                            summaryText = JSON.stringify(summaryText);
+                          }
+                        } else if (typeof summaryText === 'string' && summaryText.trim().startsWith('[')) {
+                          try {
+                            const parsed = JSON.parse(summaryText);
+                            if (Array.isArray(parsed)) {
+                              summaryText = parsed.map(i => `${i.name || i.title || 'Item'} (Qty: ${i.qty || 1})`).join(', ');
+                            }
+                          } catch (e) {
+                            // Keep original string if parsing fails
+                          }
+                        }
+
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            <td style={{ padding: '8px', color: '#d1d5db', whiteSpace: 'nowrap' }}>{sale.Timestamp}</td>
+                            <td style={{ padding: '8px', color: '#34d399', fontWeight: 'bold' }}>{sale.Cashier}</td>
+                            <td style={{ padding: '8px' }}>{summaryText}</td>
+                            <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{Number(sale["Total Amount (GHC)"] || 0).toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -792,6 +841,10 @@ export default function CheckoutScreen() {
                 <div>
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Product Name</label>
                   <input type="text" value={editName} onChange={e => setEditName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Category</label>
+                  <input type="text" value={editCategory} onChange={e => setEditCategory(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#fff', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ fontSize: '12px', color: '#e5e7eb', display: 'block', marginBottom: '4px' }}>Price (GHC)</label>
